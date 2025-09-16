@@ -1,6 +1,9 @@
 from fastapi import FastAPI, APIRouter
 from starlette.responses import RedirectResponse
 from app.db.database import engine, Base
+from app.models.employee.employee import Employee
+from app.models.rol.rol import Rol
+from app.models.username.username import Username
 
 app = FastAPI(
     title="API SIG Backend",
