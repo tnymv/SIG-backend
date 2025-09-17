@@ -11,8 +11,7 @@ class Employee(Base):
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
-    phone_number = Column(String(20), nullable=True)  
-    department = Column(String(100), nullable=True)
+    phone_number = Column(String(20), nullable=True) 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = Column(Integer, default=1)  # 1: activo, 0: inactivo
