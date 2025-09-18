@@ -3,8 +3,7 @@ from starlette.responses import RedirectResponse
 from app.db.database import engine, Base, SessionLocal
 
 #Aqui se importan los los schemmas
-from app.controllers import rol_router
-from app.controllers import employee_router
+from app.controllers import rol_router,employee_router,username_router
 
 app = FastAPI(
     title="API SIG Backend",
@@ -25,6 +24,7 @@ api_version = APIRouter(prefix="/api/v1")
 #-----
 api_version.include_router(rol_router)
 api_version.include_router(employee_router)
+api_version.include_router(username_router)
 
 
 app.include_router(api_version)

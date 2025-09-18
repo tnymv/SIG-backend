@@ -5,7 +5,7 @@ from datetime import datetime
 class UsernameBase(BaseModel):
     username: str
     password_hash: str
-    employee_id: str
+    employee_id: int
     rol_id: int
     status: int
 
