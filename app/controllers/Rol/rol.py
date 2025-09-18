@@ -2,28 +2,34 @@ from fastapi import HTTPException, APIRouter
 from app.models.rol.rol import Rol
 from typing import List
 from datetime import datetime
-from app.schemas.rol.rol import RolBase, RolCreate, RolResponse
+from app.schemas.rol.rol import RolBase, RolResponse
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
+from app.utils.response import success_response, error_response, existence_response_dict
 
 
-router = APIRouter(prefix='/rol', tags=['Rol']) # Define el prefijo y las etiquetas para el router
+router = APIRouter(prefix='/rol', tags=['Rol'])
     
 
 @router.get('', response_model=List[RolResponse])
 async def get_roles(page: int = 1, limit: int = 5, db: Session = Depends(get_db)):
-    offset = (page - 1) * limit
-    roles = db.query(Rol).offset(offset).limit(limit).all()
-    return roles
+    try:
+            offset = (page - 1) * limit
+            if page < 1 or limit < 1:
+                raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+            roles = db.query(Rol).offset(offset).limit(limit).all()
+            return success_response([RolResponse.model_validate(rol).model_dump(mode="json") for rol in roles])
+    except Exception as e:
+        return error_response(f"Error al obtener roles: {str(e)}")
 
 @router.post('', response_model=RolResponse)
 async def create_rol(rol_data: RolBase, db: Session = Depends(get_db)):
     if db.query(Rol).filter(Rol.name == rol_data.name).first():
         raise HTTPException(
             status_code=409,
-            detail="El rol ya existe",
-            headers={"X-Error": "El rol ya existe"}
+            detail=existence_response_dict(True, "El rol ya existe"),
+            headers={"X-Error": "El rol ya existe"} 
         )
 
     try:
@@ -35,16 +41,16 @@ async def create_rol(rol_data: RolBase, db: Session = Depends(get_db)):
             updated_at=datetime.now()
         )
 
-        db.add(new_rol)   # Se agrega a la sesión
-        db.commit()       # Se guardan los cambios en la BD
-        db.refresh(new_rol)  # Se actualiza el objeto con los valores de la BD (id generado, etc.)
+        db.add(new_rol)
+        db.commit()
+        db.refresh(new_rol)
 
-        return RolResponse.model_validate(new_rol)
+        return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
     except Exception as e:
-        db.rollback()  # 👈 rollback en caso de error
+        db.rollback()
         raise HTTPException(
-            status_code=400,
-            detail=str(e),
-            headers={"X-Error": str(e)}
+            status_code=500,
+            detail=error_response(f"Error al crear el rol: {str(e)}").body.decode(),
+            headers={"X-Error": f"Error al crear el rol: {str(e)}"}
         )
 

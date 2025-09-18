@@ -12,7 +12,7 @@ class RolCreate(RolBase):
     pass  
 
 # Para respuesta al cliente (salida)
-class RolResponse(RolBase):
+class RolResponse(BaseModel):
     id_rol: int
     created_at: datetime
     updated_at: datetime
