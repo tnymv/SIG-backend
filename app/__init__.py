@@ -4,6 +4,7 @@ from app.db.database import engine, Base, SessionLocal
 
 #Aqui se importan los los schemmas
 from app.controllers import rol_router
+from app.controllers import employee_router
 
 app = FastAPI(
     title="API SIG Backend",
@@ -21,7 +22,10 @@ app = FastAPI(
 
 api_version = APIRouter(prefix="/api/v1")
 
+#-----
 api_version.include_router(rol_router)
+api_version.include_router(employee_router)
+
 
 app.include_router(api_version)
 
