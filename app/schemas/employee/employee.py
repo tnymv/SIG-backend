@@ -11,7 +11,7 @@ class EmployeeBase(BaseModel):
 
 # Para creación de usuario (entrada)
 class EmployeeCreate(EmployeeBase):
-    pass  # Si necesitaras password, aquí lo agregas
+    pass  
 
 # Para respuesta al cliente (salida)
 class EmployeeResponse(EmployeeBase):
