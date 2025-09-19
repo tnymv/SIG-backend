@@ -8,13 +8,18 @@ from app.db.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
+from app.controllers.auth.auth_controller import get_current_active_user
+from app.schemas.username.username import UserLogin
 
 router = APIRouter(prefix='/employee', tags=['Employee'])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-@router.get('', response_model=List[EmployeeResponse])
-async def get_employees(page: int = 1, limit: int = 5, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+@router.get('', response_model=List[EmployeeResponse]) #Ahorita necesita la utenticación para ver la ruta
+async def get_employees(
+    page: int = 1, limit: int = 5, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
+    
     try:
         offset = (page - 1) * limit
         if page < 1 or limit < 1:
@@ -25,7 +30,11 @@ async def get_employees(page: int = 1, limit: int = 5, db: Session = Depends(get
         return error_response(f"Error al obtener empleados: {str(e)}")
 
 @router.post('', response_model=EmployeeResponse)
-async def create_employee(employee_data: EmployeeBase, db: Session = Depends(get_db)):
+async def create_employee(
+    employee_data: EmployeeBase, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
     if db.query(Employee).filter(Employee.first_name == employee_data.first_name).first():
         raise HTTPException(
             status_code=409,
