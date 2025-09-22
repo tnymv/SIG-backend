@@ -14,4 +14,4 @@ class Rol(Base):
     status = Column(Integer, default=1)  # 1: activo, 0: inactivo
     
     # Relación con la tabla Username
-    usernames = relationship("Username", back_populates="rol")
+    users = relationship("Username", back_populates="rol")

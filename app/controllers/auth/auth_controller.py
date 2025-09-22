@@ -19,11 +19,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 router = APIRouter(prefix='/auth', tags=['Authentication'])
 
-def get_user(db: Session, username: str): #Esta función es para obtener al usuario
-    return db.query(username_model).filter(username_model.username == username).first()
+def get_user(db: Session, user: str): #Esta función es para obtener al usuario
+    return db.query(username_model).filter(username_model.user == user).first()
 
-def authenticate_user(db: Session, username: str, password: str): #Esto sirve para autenticar al usuario
-    user = get_user(db, username)
+def authenticate_user(db: Session, user: str, password: str): #Esto sirve para autenticar al usuario
+    user = get_user(db, user)
     if not user: 
         return False
     if not verify_password(password, user.password_hash):  
@@ -36,8 +36,8 @@ def get_current_user(token: str = Depends(oauth2_scheme),db: Session = Depends(g
         detail = "No se pudieron validar las credenciales",
         headers = {"WWW-Authenticate": "Bearer"},
     )
-    username = verify_token(token, credentials_exception)
-    user = get_user(db, username=username)
+    user = verify_token(token, credentials_exception)
+    user = get_user(db, user=user)
     if user is None: 
         raise credentials_exception
     return user
@@ -56,12 +56,12 @@ async def login_for_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect user or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes= ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.user}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

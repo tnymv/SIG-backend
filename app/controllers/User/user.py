@@ -7,6 +7,8 @@ from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.auth import get_password_hash
+from app.controllers.auth.auth_controller import get_current_active_user
+from app.schemas.user.user import UserLogin
 
 router = APIRouter(prefix='/user', tags=['User'])
 
@@ -14,7 +16,8 @@ router = APIRouter(prefix='/user', tags=['User'])
 async def get_user(
     page: int = 1,
     limit: int = 5,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     
     try: 
@@ -30,7 +33,11 @@ async def get_user(
         return error_response(f"Error al obtener user: {str(e)}")
 
 @router.post('',response_model = UserResponse)
-async def create_user(user_data: UserBase, db: Session = Depends(get_db)):
+async def create_user(
+    user_data: UserBase, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
     if db.query(Username).filter(Username.user == user_data.user).first():
         raise HTTPException(
             status_code=409,

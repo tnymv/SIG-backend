@@ -17,4 +17,4 @@ class Employee(Base):
     state = Column(Boolean, default=True)
     
     # Relación con la tabla Username
-    usernames = relationship("Username", back_populates="employee")
+    users = relationship("Username", back_populates="employee")
