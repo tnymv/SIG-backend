@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter,Depends
-from app.models.user.user import User
+from app.models.user.user import Username
 from typing import List
 from datetime import datetime
 from app.schemas.user.user import UserBase, UserResponse
@@ -27,7 +27,7 @@ async def get_user(
             for user in usernames
             ])
     except Exception as e:
-        return error_response(f"Error al obtener usernames: {str(e)}")
+        return error_response(f"Error al obtener user: {str(e)}")
 
 @router.post('',response_model = UserResponse)
 async def create_user(user_data: UserBase, db: Session = Depends(get_db)):

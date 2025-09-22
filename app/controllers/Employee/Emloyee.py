@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.controllers.auth.auth_controller import get_current_active_user
-from app.schemas.username.username import UserLogin
+from app.schemas.user.user import UserLogin
 
 router = APIRouter(prefix='/employee', tags=['Employee'])
 

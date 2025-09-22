@@ -1,3 +1,3 @@
 from .rol.rol import Rol
-from .username.username import Username
+from .user.user import Username
 from .employee.employee import Employee

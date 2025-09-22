@@ -11,8 +11,8 @@ from app.utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.schemas.auth.auth import Token, TokenData
-from app.schemas.username.username import UserLogin
-from app.models.username.username import Username as username_model
+from app.schemas.user.user import UserLogin
+from app.models.user.user import Username as username_model
 from app.db.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
