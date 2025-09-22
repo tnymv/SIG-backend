@@ -7,6 +7,8 @@ from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.auth import get_password_hash
+from app.controllers.auth.auth_controller import get_current_active_user
+from app.schemas.username.username import UserLogin
 
 router = APIRouter(prefix='/username', tags=['Username'])
 
@@ -14,7 +16,8 @@ router = APIRouter(prefix='/username', tags=['Username'])
 async def get_usernames(
     page: int = 1,
     limit: int = 5,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     
     try: 
@@ -30,7 +33,11 @@ async def get_usernames(
         return error_response(f"Error al obtener usernames: {str(e)}")
 
 @router.post('',response_model = UsernameResponse)
-async def create_username(username_data: UsernameBase, db: Session = Depends(get_db)):
+async def create_username(
+    username_data: UsernameBase, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
     if db.query(Username).filter(Username.username == username_data.username).first():
         raise HTTPException(
             status_code=409,

@@ -23,3 +23,4 @@ class UsernameResponse(UsernameBase):
 class UserLogin(BaseModel):
     username: str
     password_hash: str
+    status: int

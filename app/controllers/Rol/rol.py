@@ -7,13 +7,20 @@ from app.db.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
+from app.controllers.auth.auth_controller import get_current_active_user
+from app.schemas.username.username import UserLogin
 
 
 router = APIRouter(prefix='/rol', tags=['Rol'])
     
 
 @router.get('', response_model=List[RolResponse])
-async def get_roles(page: int = 1, limit: int = 5, db: Session = Depends(get_db)):
+async def get_roles(
+    page: int = 1, 
+    limit: int = 5, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
     try:
             offset = (page - 1) * limit
             if page < 1 or limit < 1:
@@ -24,7 +31,11 @@ async def get_roles(page: int = 1, limit: int = 5, db: Session = Depends(get_db)
         return error_response(f"Error al obtener roles: {str(e)}")
 
 @router.post('', response_model=RolResponse)
-async def create_rol(rol_data: RolBase, db: Session = Depends(get_db)):
+async def create_rol(
+    rol_data: RolBase, 
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+    ):
     if db.query(Rol).filter(Rol.name == rol_data.name).first():
         raise HTTPException(
             status_code=409,

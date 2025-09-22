@@ -1,9 +1,8 @@
 from fastapi import HTTPException, APIRouter
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm #Para poder usar OAuth2
 from app.models.employee.employee import Employee
 from typing import List
 from datetime import datetime
-from app.schemas.employee.employee import EmployeeBase, EmployeeResponse, EmployeeCreate
+from app.schemas.employee.employee import EmployeeBase, EmployeeResponse
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -48,7 +47,7 @@ async def create_employee(
             last_name=employee_data.last_name,
             email=employee_data.email,
             phone_number=employee_data.phone_number,
-            status=employee_data.status,
+            state=employee_data.state,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )

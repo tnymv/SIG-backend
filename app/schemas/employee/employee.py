@@ -7,15 +7,15 @@ class EmployeeBase(BaseModel):
     last_name: str
     email: str
     phone_number: str
-    status: int
-
-# Para creación de usuario (entrada)
-class EmployeeCreate(EmployeeBase):
-    pass  
+    state: bool
 
 # Para respuesta al cliente (salida)
 class EmployeeResponse(EmployeeBase):
     id_employee: int
+    first_name: str
+    last_name: str
+    email: str
+    phone_number: str
     created_at: datetime
     updated_at: datetime
 
