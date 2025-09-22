@@ -6,10 +6,10 @@ from app.db.database import Base
 from sqlalchemy.orm import relationship
 
 class Username(Base):
-    __tablename__ = "username"
+    __tablename__ = "user"
     
-    id_username = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, index=True, nullable=False)
+    id_user = Column(Integer, primary_key=True, index=True)
+    user = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     employee_id = Column(Integer, ForeignKey("employees.id_employee"), nullable=False)
     rol_id = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
@@ -18,5 +18,5 @@ class Username(Base):
     status = Column(Integer, default=1)  # 1: activo, 0: inactivo
     
     # Relaciones
-    employee = relationship("Employee", back_populates="usernames")
-    rol = relationship("Rol", back_populates="usernames")
+    employee = relationship("Employee", back_populates="users")
+    rol = relationship("Rol", back_populates="users")
