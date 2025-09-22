@@ -4,7 +4,7 @@ from app.db.database import engine, Base
 
 
 #Aqui se importan los los schemmas
-from app.controllers import rol_router,employee_router,username_router
+from app.controllers import rol_router,employee_router,user_router 
 from app.controllers import auth_router 
 
 app = FastAPI(
@@ -26,7 +26,7 @@ api_version = APIRouter(prefix="/api/v1")
 #-----
 api_version.include_router(rol_router)
 api_version.include_router(employee_router)
-api_version.include_router(username_router)
+api_version.include_router(user_router)
 api_version.include_router(auth_router)
 #api_version.inclide_router()
 

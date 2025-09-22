@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter,Depends
-from app.models.user.user import User
+from app.models.user.user import Username
 from typing import List
 from datetime import datetime
 from app.schemas.user.user import UserBase, UserResponse
@@ -21,17 +21,17 @@ async def get_user(
         offset = (page - 1) * limit
         if page < 1 or limit < 1:
             raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
-        usernames = db.query(User).offset(offset).limit(limit).all()
+        usernames = db.query(Username).offset(offset).limit(limit).all()
         return success_response([
             UserResponse.model_validate(user).model_dump(mode="json")
             for user in usernames
             ])
     except Exception as e:
-        return error_response(f"Error al obtener usernames: {str(e)}")
+        return error_response(f"Error al obtener user: {str(e)}")
 
 @router.post('',response_model = UserResponse)
 async def create_user(user_data: UserBase, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.user == user_data.user).first():
+    if db.query(Username).filter(Username.user == user_data.user).first():
         raise HTTPException(
             status_code=409,
             detail=existence_response_dict(True, "El user ya existe"),
@@ -41,7 +41,7 @@ async def create_user(user_data: UserBase, db: Session = Depends(get_db)):
     hashed_password = get_password_hash(user_data.password_hash)
     
     try:
-        new_user = User(
+        new_user = Username(
             user=user_data.user,
             password_hash=hashed_password,
             employee_id=user_data.employee_id,
