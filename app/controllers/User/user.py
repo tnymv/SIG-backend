@@ -51,6 +51,7 @@ async def create_user(
         new_user = Username(
             user=user_data.user,
             password_hash=hashed_password,
+            email= user_data.email,
             employee_id=user_data.employee_id,
             rol_id=user_data.rol_id,
             status=user_data.status,

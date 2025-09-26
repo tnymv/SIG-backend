@@ -5,7 +5,6 @@ from datetime import datetime
 class EmployeeBase(BaseModel):
     first_name: str
     last_name: str
-    email: str
     phone_number: str
     state: bool
 
@@ -14,7 +13,6 @@ class EmployeeResponse(EmployeeBase):
     id_employee: int
     first_name: str
     last_name: str
-    email: str
     phone_number: str
     created_at: datetime
     updated_at: datetime

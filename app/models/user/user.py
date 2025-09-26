@@ -11,6 +11,7 @@ class Username(Base):
     id_user = Column(Integer, primary_key=True, index=True)
     user = Column(String(50), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
     employee_id = Column(Integer, ForeignKey("employees.id_employee"), nullable=False)
     rol_id = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -45,7 +45,6 @@ async def create_employee(
         new_employee = Employee(
             first_name=employee_data.first_name,
             last_name=employee_data.last_name,
-            email=employee_data.email,
             phone_number=employee_data.phone_number,
             state=employee_data.state,
             created_at=datetime.now(),

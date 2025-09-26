@@ -5,6 +5,7 @@ from datetime import datetime
 class UserBase(BaseModel):
     user: str
     password_hash: str
+    email: str
     employee_id: int
     rol_id: int
     status: int
@@ -13,6 +14,7 @@ class UserBase(BaseModel):
 class UserResponse(UserBase):
     id_user: int
     user: str
+    email: str
     status: int
     created_at: datetime
     updated_at: datetime
