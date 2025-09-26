@@ -22,8 +22,8 @@ router = APIRouter(prefix='/auth', tags=['Authentication'])
 def get_user(db: Session, username: str): #Esta función es para obtener al usuario
     return db.query(username_model).filter(username_model.username == username).first()
 
-def authenticate_user(db: Session, username: str, password: str): #Esto sirve para autenticar al usuario
-    user = get_user(db, username)
+def authenticate_user(db: Session, email: str, password: str): #Esto sirve para autenticar al usuario
+    user = get_user(db, email)
     if not user: 
         return False
     if not verify_password(password, user.password_hash):  
