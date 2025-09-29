@@ -11,7 +11,7 @@ from app.utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.schemas.auth.auth import Token, TokenData
-from app.schemas.user.user import UserLogin
+from app.schemas.user.user import UserLogin, UserResponse
 from app.models.user.user import Username as username_model
 from app.db.database import get_db
 
@@ -42,7 +42,7 @@ def get_current_user(token: str = Depends(oauth2_scheme),db: Session = Depends(g
         raise credentials_exception
     return user
 
-def get_current_active_user(current_user: UserLogin = Depends(get_current_user)): #Esto nos sirve para verificar si el usuario está activo
+def get_current_active_user(current_user: UserResponse = Depends(get_current_user)): #Esto nos sirve para verificar si el usuario está activo
     if not current_user.status:
         raise HTTPException(status_code=400, detail="Usuario inactivo")
     return current_user
@@ -65,6 +65,6 @@ async def login_for_access_token(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get('/me', response_model=UserLogin)  #Este endpoint es para obtener la información del usuario actual
-async def read_users_me(current_user: UserLogin = Depends(get_current_active_user)):
+@router.get('/me', response_model=UserResponse)  #Este endpoint es para obtener la información del usuario actual
+async def read_users_me(current_user: UserResponse = Depends(get_current_active_user)):
     return current_user
