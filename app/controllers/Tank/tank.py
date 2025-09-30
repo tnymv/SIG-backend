@@ -31,15 +31,30 @@ async def get_tanks(
             func.ST_X(Tank.coordinates).label('longitude')
         ).offset(offset).limit(limit).all()
         
+        import json
+        
         tank_list = []
         for tank, lat, lon in tanks_with_coords:
+            # Deserializar fotos desde JSON
+            photos = []
+            if tank.photography:
+                try:
+                    # Intentar deserializar como JSON (nuevo formato)
+                    photos = json.loads(tank.photography)
+                    if not isinstance(photos, list):
+                        photos = [tank.photography]  # Fallback para formato antiguo
+                except (json.JSONDecodeError, TypeError):
+                    # Formato antiguo: string simple
+                    photos = [tank.photography] if tank.photography else []
+            
             tank_response = TankResponse(
                 id_tank=tank.id_tank,
                 name=tank.name,
                 latitude=lat or 0.0,
                 longitude=lon or 0.0,
                 connections=tank.connections,
-                photography=tank.photography,
+                photos=photos,
+                photography=photos[0] if photos else None,  # Compatibilidad
                 state=tank.state,
                 created_at=tank.created_at,
                 updated_at=tank.updated_at
@@ -63,11 +78,21 @@ async def create_tank(
             headers={"X-Error": "El tanque ya existe"}
         )
     try:
+        import json
+        
+        # Manejar fotos: usar el array photos si está disponible, sino usar photography
+        photos_to_store = tank_data.photos if tank_data.photos else []
+        if tank_data.photography and tank_data.photography not in photos_to_store:
+            photos_to_store.append(tank_data.photography)
+        
+        # Guardar fotos como JSON string
+        photography_json = json.dumps(photos_to_store) if photos_to_store else None
+        
         new_tank = Tank(
             name = tank_data.name,
             coordinates = f"SRID=4326;POINT({tank_data.longitude} {tank_data.latitude})",
             connections = tank_data.connections,
-            photography = tank_data.photography,
+            photography = photography_json,
             state = tank_data.state,
             created_at = datetime.now(),
             updated_at = datetime.now()
@@ -76,17 +101,18 @@ async def create_tank(
         db.add(new_tank)
         db.commit()
         db.refresh(new_tank)
+        
         tank_response = TankResponse(
             id_tank=new_tank.id_tank,
             name=new_tank.name,
             latitude=tank_data.latitude,
             longitude=tank_data.longitude,
             connections=new_tank.connections,
-            photography=new_tank.photography,
+            photos=photos_to_store,
+            photography=photos_to_store[0] if photos_to_store else None,
             state=new_tank.state,
             created_at=new_tank.created_at,
             updated_at=new_tank.updated_at
-            
         )
         return success_response(tank_response.model_dump(mode="json"))
     except Exception as e:
