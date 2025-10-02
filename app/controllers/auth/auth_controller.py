@@ -24,9 +24,11 @@ def get_user(db: Session, email: str): #Esta función es para obtener al usuario
 
 def authenticate_user(db: Session, email: str, password: str): #Esto sirve para autenticar al usuario
     user = get_user(db, email)
-    if not user: 
+    if not user:
         return False
-    if not verify_password(password, user.password_hash):  
+    if not verify_password(password, user.password_hash):
+        return False
+    if user.status != 1: #Ver si se agrega, un mensaje que diga que el usuario no está activo
         return False
     return user
 

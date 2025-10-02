@@ -1,11 +1,13 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+from pydantic import EmailStr
 
 # Campos compartidos por varios schemas
 class UserBase(BaseModel):
     user: str
     password_hash: str
-    email: str
+    email: EmailStr
     employee_id: int
     rol_id: int
     status: int
@@ -25,3 +27,12 @@ class UserResponse(UserBase):
 class UserLogin(BaseModel):
     user: str
     password_hash: str
+
+
+class UserUpdate(BaseModel):
+    user: Optional[str] = None
+    password: Optional[str] = None  # Opcional para no cambiarla siempre
+    email: Optional[EmailStr] = None
+    employee_id: Optional[int] = None
+    rol_id: Optional[int] = None
+    status: Optional[int] = None
