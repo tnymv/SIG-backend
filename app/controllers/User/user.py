@@ -17,7 +17,7 @@ async def get_user(
     page: int = 1,
     limit: int = 5,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     
     try: 
@@ -36,7 +36,7 @@ async def get_user(
 async def create_user(
     user_data: UserBase, 
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
     ):
     if db.query(Username).filter(Username.user == user_data.user).first():
         raise HTTPException(
@@ -76,7 +76,7 @@ async def update_user(
     user_id: int,
     user_data: UserUpdate,  # Usa UserUpdate en lugar de UserBase
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     # Buscar usuario
     user = db.query(Username).filter(Username.id_user == user_id).first()
@@ -146,7 +146,7 @@ async def update_user(
 async def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     user = db.query(Username).filter(Username.id_user == user_id).first()
     if not user:
