@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.auth import get_password_hash
 from app.controllers.auth.auth_controller import get_current_active_user
+from app.utils.logger import create_log
 from app.schemas.user.user import UserLogin
 
 router = APIRouter(prefix='/user', tags=['User'])
@@ -25,6 +26,14 @@ async def get_user(
         if page < 1 or limit < 1:
             raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
         usernames = db.query(Username).offset(offset).limit(limit).all()
+        
+        create_log(
+            db,
+            user_id = current_user.id_user,
+            action = "READ",
+            entity = "User",
+            description= f"El usuario {current_user.user} accedió a la lista de usuarios"
+        )
         return success_response([
             UserResponse.model_validate(user).model_dump(mode="json")
             for user in usernames
@@ -62,6 +71,15 @@ async def create_user(
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+        
+        create_log(
+            db,
+            user_id = current_user.id_user,
+            action = "CREATE",
+            entity = "User",
+            entity_id= new_user.id_user,
+            description= f"El usuario {current_user.user} creó el usuario {new_user.user}"
+        )
         return success_response(UserResponse.model_validate(new_user).model_dump(mode="json"))
     except Exception as e:
         db.rollback()  
@@ -132,6 +150,15 @@ async def update_user(
         
         db.commit()
         db.refresh(user)
+        
+        create_log(
+            db, 
+            user_id = current_user.id_user,
+            action= "UPDATE",
+            entity = "User",
+            entity_id = user.id_user,
+            description = f"El usuario {current_user.user} actualizó el usuario {user.user}"
+        )
         return success_response(UserResponse.model_validate(user).model_dump(mode="json"))
     
     except Exception as e:
@@ -161,6 +188,16 @@ async def delete_user(
         user.updated_at = datetime.now()
         db.commit()
         db.refresh(user)
+        
+        create_log(
+            db,
+            user_id = current_user.id_user,
+            action= "DELETE",
+            entity= "User",
+            entity_id= user.id_user,
+            description= f"El usuario {current_user.user} desactivó el usuario {user.user}"
+
+        )
         return success_response("User desactivado exitosamente")
     except Exception as e:
         db.rollback()
