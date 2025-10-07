@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from app.utils.logger import create_log
 
 from app.utils.auth import (
     verify_password,
@@ -65,8 +66,26 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    
+    create_log(
+        db,
+        user_id=user.id_user,
+        action="LOGIN",
+        description=f"El usuario {user.user} inició sesión"
+    )
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get('/me', response_model=UserResponse)  #Este endpoint es para obtener la información del usuario actual
-async def read_users_me(current_user: UserResponse = Depends(get_current_active_user)):
-    return current_user
+async def read_users_me(
+    current_user: UserResponse = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    
+        create_log(
+        db=db,
+        user_id=current_user.id_user,
+        action="READ",
+        description=f"El usuario {current_user.user} consultó su información personal"
+        )
+        return current_user
