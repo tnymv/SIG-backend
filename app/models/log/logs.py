@@ -15,7 +15,3 @@ class Logs(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("Username", back_populates="logs")
-    
-    
-    #Codigo de ejemplo para usar el log
-    # create_log(db, user_id=usuario.id_user, action="CREATE", entity="Tank", entity_id=tank.id, description="Nuevo tanque registrado")

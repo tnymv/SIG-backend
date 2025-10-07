@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 #Aqui se importan los los schemmas
 from app.controllers import rol_router,employee_router,user_router 
-from app.controllers import auth_router, tank_router
+from app.controllers import auth_router, tank_router, report_router
 
 app = FastAPI(
     title="API SIG Backend",
@@ -37,6 +37,7 @@ api_version.include_router(employee_router)
 api_version.include_router(user_router)
 api_version.include_router(auth_router)
 api_version.include_router(tank_router)
+api_version.include_router(report_router)
 
 
 app.include_router(api_version)
