@@ -55,6 +55,12 @@ async def create_rol(
         db.add(new_rol)
         db.commit()
         db.refresh(new_rol)
+        
+        
+        rol_admin = db.query(Rol).filter(Rol.id_rol == 1).first()
+        if rol_admin:
+            rol_admin.permissions.append(new_rol)
+            db.commit()
 
         return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
     except Exception as e:
@@ -64,4 +70,5 @@ async def create_rol(
             detail=error_response(f"Error al crear el rol: {str(e)}").body.decode(),
             headers={"X-Error": f"Error al crear el rol: {str(e)}"}
         )
+
 

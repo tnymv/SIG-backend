@@ -22,3 +22,4 @@ class Username(Base):
     employee = relationship("Employee", back_populates="users")
     rol = relationship("Rol", back_populates="users")
     logs = relationship("Logs", back_populates="user")
+

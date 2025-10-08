@@ -13,5 +13,5 @@ class Rol(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = Column(Integer, default=1)  # 1: activo, 0: inactivo
     
-    # Relación con la tabla Username
-    users = relationship("Username", back_populates="rol")
+    # Relación con la tabla permisos
+    permissions = relationship("Permissions",secondary="rol_permissions", back_populates="roles")
