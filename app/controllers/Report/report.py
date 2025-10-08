@@ -11,7 +11,7 @@ from app.schemas.user.user import UserLogin
 from app.controllers.auth.auth_controller import get_current_active_user
 
 
-router = APIRouter(prefix = '/report', tags = ['Report'])
+router = APIRouter(prefix = '/report', tags = ['Reports'])
 
 @router.get("/logs/summary", response_model=LogSummaryResponse)
 async def get_logs_summary(

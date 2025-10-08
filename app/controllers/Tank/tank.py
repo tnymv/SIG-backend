@@ -18,6 +18,7 @@ router = APIRouter(prefix='/tank', tags=['Tank'])
 async def create_tank(
     tank_data: TankBase,
     db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     if db.query(Tank).filter(Tank.name == tank_data.name).first():
         raise HTTPException(
@@ -74,6 +75,7 @@ async def update_tank(
     tank_id: int,
     tank_data: TankUpdate,
     db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     #Buscar tanque
     tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
