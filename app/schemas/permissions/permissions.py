@@ -15,3 +15,4 @@ class PermissionsResponse(PermissionsBase):
 
     class Config:
         from_attributes = True
+

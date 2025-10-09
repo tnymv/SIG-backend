@@ -9,6 +9,8 @@ from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
+from app.models.permissions.permissions import Permissions
+from app.schemas.rol.rol import RolBase, RolResponse, RolCreate
 
 
 router = APIRouter(prefix='/rol', tags=['Rol'])
@@ -32,7 +34,7 @@ async def get_roles(
 
 @router.post('', response_model=RolResponse)
 async def create_rol(
-    rol_data: RolBase, 
+    rol_data: RolCreate, 
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
     ):
@@ -53,14 +55,16 @@ async def create_rol(
         )
 
         db.add(new_rol)
+        db.flush()
+
+        if rol_data.permission_ids:
+            permissions = db.query(Permissions).filter(
+                Permissions.id_permissions.in_(rol_data.permission_ids)
+            ).all()
+            new_rol.permissions.extend(permissions)
+
         db.commit()
         db.refresh(new_rol)
-        
-        
-        rol_admin = db.query(Rol).filter(Rol.id_rol == 1).first()
-        if rol_admin:
-            rol_admin.permissions.append(new_rol)
-            db.commit()
 
         return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
     except Exception as e:
@@ -70,5 +74,37 @@ async def create_rol(
             detail=error_response(f"Error al crear el rol: {str(e)}").body.decode(),
             headers={"X-Error": f"Error al crear el rol: {str(e)}"}
         )
+@router.get('/{rol_id}/permisos')
+async def get_rol_permisos(
+    rol_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        rol = db.query(Rol).filter(Rol.id_rol == rol_id).first()
+        if not rol:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
 
+        # PRIMERO: Obtener TODOS los permisos disponibles de la BD
+        todos_los_permisos = db.query(Permissions).all()
+        
+        # Crear el diccionario base con TODOS los permisos como False
+        permisos_dict = {}
+        for permiso in todos_los_permisos:
+            nombre_key = permiso.name.lower().replace(" ", "_")
+            permisos_dict[nombre_key] = False
 
+        # SEGUNDO: Marcar como True solo los permisos que el rol tiene
+        for permiso in rol.permissions:
+            nombre_key = permiso.name.lower().replace(" ", "_")
+            permisos_dict[nombre_key] = True
+
+        response = {
+            "rol_id": rol.id_rol,
+            "rol_name": rol.name,
+            "permisos": permisos_dict
+        }
+
+        return success_response(response)
+    except Exception as e:
+        return error_response(f"Error al obtener permisos: {str(e)}")

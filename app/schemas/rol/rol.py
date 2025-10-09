@@ -1,15 +1,16 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import List, Optional
 
 # Campos compartidos por varios schemas
 class RolBase(BaseModel):
     name: str
-    description: str
+    description: Optional[str] = None
     status: int
 
 # Para creación de usuario (entrada)
 class RolCreate(RolBase):
-    pass  
+    permission_ids: List[int] = []
 
 # Para respuesta al cliente (salida)
 class RolResponse(RolBase):
