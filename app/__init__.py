@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 #Aqui se importan los los schemmas
 from app.controllers import rol_router,employee_router,user_router 
-from app.controllers import auth_router, tank_router, report_router, report_router, permsission_router
+from app.controllers import auth_router, tank_router, report_router, permsission_router
 
 
 app = FastAPI(
@@ -40,8 +40,6 @@ api_version.include_router(auth_router)
 api_version.include_router(tank_router)
 api_version.include_router(report_router)
 api_version.include_router(permsission_router)
-
-api_version.include_router(report_router)
 #-----
 
 
