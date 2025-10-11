@@ -184,21 +184,24 @@ async def delete_user(
         )
 
     try:
-        user.status = 0
+        # Alternar el estado del usuario
+        new_status = 0 if user.status == 1 else 1
+        user.status = new_status
         user.updated_at = datetime.now()
         db.commit()
         db.refresh(user)
         
+        action_text = "activó" if new_status == 1 else "desactivó"
         create_log(
             db,
             user_id = current_user.id_user,
-            action= "DELETE",
+            action= "UPDATE",
             entity= "User",
             entity_id= user.id_user,
-            description= f"El usuario {current_user.user} desactivó el usuario {user.user}"
+            description= f"El usuario {current_user.user} {action_text} el usuario {user.user}"
 
         )
-        return success_response("User desactivado exitosamente")
+        return success_response(f"Usuario {'activado' if new_status == 1 else 'desactivado'} exitosamente")
     except Exception as e:
         db.rollback()
         raise HTTPException(

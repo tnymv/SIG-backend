@@ -5,6 +5,7 @@ from datetime import datetime
 from app.schemas.tanks.tanks import TankBase, TankResponse, TankResponseCreate, TankUpdate
 from app.db.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.controllers.auth.auth_controller import get_current_active_user
@@ -239,8 +240,16 @@ async def update_tank(
         
         db.commit()
         db.refresh(tank)
+        
+        # Obtener coordenadas usando funciones PostGIS (igual que en GET)
+        result = db.query(
+            Tank,
+            func.ST_X(Tank.coordinates).label('longitude'),
+            func.ST_Y(Tank.coordinates).label('latitude')
+        ).filter(Tank.id_tank == tank.id_tank).first()
+        
+        tank, longitude, latitude = result
         photography_list = list(tank.photography) if tank.photography else []
-        longitude, latitude = map(float, tank.coordinates.split('(')[1].strip(')').split())
         
         tank_response = TankResponse(
             id_tank=tank.id_tank,
@@ -248,6 +257,7 @@ async def update_tank(
             latitude=latitude,
             longitude=longitude,
             connections=tank.connections,
+            photography=photography_list,
             state=tank.state,
             created_at=tank.created_at,
             updated_at=tank.updated_at
@@ -280,18 +290,23 @@ async def delete_tank(
         )
         
     try:
-        tank.state = False
+        # Toggle del estado: si está activo lo desactiva, si está inactivo lo activa
+        tank.state = not tank.state
         tank.updated_at = datetime.now()
         db.commit()
         db.refresh(tank)
+        # Log con la acción correcta según el nuevo estado
+        action_description = "activó" if tank.state else "desactivó"
         create_log(
             db,
             user_id = current_user.id_user,
             action = "DELETE",
             entity = "Tank",
-            description= f"El usuario {current_user.user} eliminó el tanque {tank.id_tank}z"
+            description= f"El usuario {current_user.user} {action_description} el tanque {tank.id_tank}"
         )   
-        return success_response("Tanque eliminado exitosamente")
+        
+        status_message = "Tanque activado exitosamente" if tank.state else "Tanque desactivado exitosamente"
+        return success_response(status_message)
     except Exception as e:
         db.rollback()
         raise HTTPException(

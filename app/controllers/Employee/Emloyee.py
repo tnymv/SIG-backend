@@ -149,21 +149,24 @@ async def delete_employee(
         )
 
     try:
-        employee.state = 0
+        # Alternar el estado del empleado
+        new_state = not employee.state
+        employee.state = new_state
         employee.updated_at = datetime.now()
         db.commit()
         db.refresh(employee)
         
+        action_text = "activó" if new_state else "desactivó"
         create_log(
             db,
             user_id = current_user.id_user,
-            action= "DELETE",
+            action= "UPDATE",
             entity= "Employee",
             entity_id= employee.id_employee,
-            description= f"El usuario {current_user.user} desactivó el empleado {employee.first_name} {employee.last_name}"
+            description= f"El usuario {current_user.user} {action_text} el empleado {employee.first_name} {employee.last_name}"
         )
         
-        return success_response("Empleado desactivado exitosamente")
+        return success_response(f"Empleado {'activado' if new_state else 'desactivado'} exitosamente")
     except Exception as e:
         db.rollback()
         raise HTTPException(
