@@ -5,3 +5,4 @@ from app.controllers.auth.auth_controller import router as auth_router
 from app.controllers.Tank.tank import router as tank_router
 from app.controllers.Report.report import router as report_router
 from app.controllers.permissions.permissions import router as permsission_router
+from app.controllers.pipes.pipes import router as pipes_router
