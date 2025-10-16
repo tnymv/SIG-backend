@@ -28,7 +28,7 @@ Sistema de Información Geográfica (SIG) desarrollado para la Municipalidad de 
 
 ### 1. Clonar el repositorio
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/tnymv/SIG-backend.git
 cd SIG-backtend
 ```
 
@@ -47,9 +47,16 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
+### 5. Crear la base de datos en PosstgresSQL
+```bash
+CREATE DATABASE Tuberia
+CREATE EXTENSION postgis;  #Para habilitar la extención de gemoetry, para las coordenandas
+```
+
 ### 5. Ejecutar el proyecto
 ```bash 
-uvicorn main:app --reload
+#Se crea automaticamente las tablas en la base de datos
+uvicorn main:app --reload   
 ```
 El proyecto se ejecutará en `http://localhost:3000`
 
@@ -71,15 +78,15 @@ El proyecto se ejecutará en `http://localhost:3000`
 ```
 app/
 ├── controllers/       # Controladores o routers donde defines las rutas de la API
-     └──
+     └──User/
 ├── db/                # Configuración y conexión a la base de datos
-     └──
+     └──data.py
 ├── models/            # Modelos de datos o de ORM
-     └──
+     └──rol/
 ├── schemas/           # Esquemas Pydantic para validación y serialización de datos
-     └──
+     └──rol/
 ├── utils/             # Funciones auxiliares o utilidades generales
-     └──
+     └──response/
 └── main.py            # Punto de entrada principal de la aplicación FastAPI
 ```
 

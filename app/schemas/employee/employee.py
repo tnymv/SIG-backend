@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 # Campos compartidos por varios schemas
 class EmployeeBase(BaseModel):
@@ -19,3 +20,10 @@ class EmployeeResponse(EmployeeBase):
 
     class Config:
         from_attributes = True  
+
+class EmployeeUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    state: Optional[bool] = None
+    updated_at: Optional[datetime] = None

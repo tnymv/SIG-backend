@@ -6,7 +6,7 @@ from app.db.database import Base
 from sqlalchemy.orm import relationship
 
 class Username(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
     
     id_user = Column(Integer, primary_key=True, index=True)
     user = Column(String(50), unique=True, index=True, nullable=False)
@@ -21,3 +21,5 @@ class Username(Base):
     # Relaciones
     employee = relationship("Employee", back_populates="users")
     rol = relationship("Rol", back_populates="users")
+    logs = relationship("Logs", back_populates="user")
+

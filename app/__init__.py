@@ -1,11 +1,13 @@
 from fastapi import FastAPI, APIRouter
 from starlette.responses import RedirectResponse
 from app.db.database import engine, Base
+from fastapi.middleware.cors import CORSMiddleware
 
 
 #Aqui se importan los los schemmas
 from app.controllers import rol_router,employee_router,user_router 
-from app.controllers import auth_router 
+from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
+
 
 app = FastAPI(
     title="API SIG Backend",
@@ -20,6 +22,13 @@ app = FastAPI(
     ),
     version="1.0.0"
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permite todos los orígenes (para desarrollo)
+    allow_credentials=True,
+    allow_methods=["*"],  # Permite todos los métodos HTTP (GET, POST, etc.)
+    allow_headers=["*"],  # Permite todas las cabeceras
+)
 
 api_version = APIRouter(prefix="/api/v1")
 
@@ -28,7 +37,11 @@ api_version.include_router(rol_router)
 api_version.include_router(employee_router)
 api_version.include_router(user_router)
 api_version.include_router(auth_router)
-#api_version.inclide_router()
+api_version.include_router(tank_router)
+api_version.include_router(report_router)
+api_version.include_router(permsission_router)
+api_version.include_router(pipes_router)
+#-----
 
 
 app.include_router(api_version)
