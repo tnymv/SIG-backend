@@ -2,7 +2,7 @@
 from fastapi.responses import JSONResponse
 
 def success_response(data, message="OK"):
-    return JSONResponse(content={"status": "success", "message": message, "data": data})
+    return JSONResponse(content={"status": "success", "message": message, "data": data} )
 
 def error_response(message="Error", status_code=400):
     return JSONResponse(content={"status": "error", "message": message}, status_code=status_code)

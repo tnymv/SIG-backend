@@ -1,15 +1,71 @@
 from fastapi import FastAPI, APIRouter
 from starlette.responses import RedirectResponse
-from app.db.database import engine, Base
+from app.db.database import engine, Base, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
-
+from contextlib import asynccontextmanager
 
 #Aqui se importan los los schemmas
 from app.controllers import rol_router,employee_router,user_router 
 from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
+from app.controllers import connection_router
 
+from app.models.user.user import Username
+from app.models.employee.employee import Employee
+from app.models.rol.rol import Rol
+from app.utils.auth import get_password_hash
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    
+    db = SessionLocal()
+    try:
+        admin_role = db.query(Rol).filter(Rol.name == "Administrador").first()
+        if not admin_role:
+            admin_role = Rol(
+                name="Administrador",
+                description="Rol con acceso total al sistema",
+                status=1
+            )
+            db.add(admin_role)
+            db.commit()
+            db.refresh(admin_role)
+
+        admin_employee = db.query(Employee).filter(Employee.first_name == "Admin", Employee.last_name == "Sistema").first()
+        if not admin_employee:
+            admin_employee = Employee(
+                first_name="Admin",
+                last_name="Sistema",
+                phone_number="00000000",
+                state=True
+            )
+            db.add(admin_employee)
+            db.commit()
+            db.refresh(admin_employee)
+
+        admin_user = db.query(Username).filter(Username.email == "admin@sig.com").first()
+        if not admin_user:
+            admin_user = Username(
+                user="admin",
+                password_hash=get_password_hash("admin123"),
+                email="admin@sig.com",
+                employee_id=admin_employee.id_employee,
+                rol_id=admin_role.id_rol,
+                status=1
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+
+    except Exception as e:
+        db.rollback()
+    finally:
+        db.close()
+    
+    yield 
 
 app = FastAPI(
+    lifespan=lifespan,
     title="API SIG Backend",
     description=(
         "API para el Backend de SIG.\n\n"
@@ -41,18 +97,11 @@ api_version.include_router(tank_router)
 api_version.include_router(report_router)
 api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)
+api_version.include_router(connection_router)
 #-----
 
 
 app.include_router(api_version)
-
-@app.on_event("startup")
-async def startup():
-    Base.metadata.create_all(bind=engine)
-        
-@app.on_event("shutdown")
-async def shutdown():
-    print("Conexión a la base de datos cerrada")
     
 @app.get('/')
 async def inicio():
