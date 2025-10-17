@@ -7,11 +7,13 @@ from contextlib import asynccontextmanager
 #Aqui se importan los los schemmas
 from app.controllers import rol_router,employee_router,user_router 
 from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
+from app.controllers import files_router
 from app.controllers import connection_router
 
 from app.models.user.user import Username
 from app.models.employee.employee import Employee
 from app.models.rol.rol import Rol
+from app.models.permissions.permissions import Permissions
 from app.utils.auth import get_password_hash
 
 @asynccontextmanager
@@ -57,6 +59,82 @@ async def lifespan(app: FastAPI):
             db.commit()
             db.refresh(admin_user)
 
+        permisos_por_defecto = [
+            # Tuberiaas
+            ('crear_tuberias', 'Puede crear registros en tuberías'),
+            ('leer_tuberias', 'Puede consultar registros en tuberías'),
+            ('actualizar_tuberias', 'Puede modificar registros en tuberías'),
+            ('eliminar_tuberias', 'Puede eliminar registros en tuberías'),
+
+            # Conexiones
+            ('crear_conexiones', 'Puede crear registros en conexiones'),
+            ('leer_conexiones', 'Puede consultar registros en conexiones'),
+            ('actualizar_conexiones', 'Puede modificar registros en conexiones'),
+            ('eliminar_conexiones', 'Puede eliminar registros en conexiones'),
+
+            # Tanques
+            ('crear_tanques', 'Puede crear registros en tanques'),
+            ('leer_tanques', 'Puede consultar registros en tanques'),
+            ('actualizar_tanques', 'Puede modificar registros en tanques'),
+            ('eliminar_tanques', 'Puede eliminar registros en tanques'),
+
+            # Desvios
+            ('crear_desvios', 'Puede crear registros en desvíos'),
+            ('leer_desvios', 'Puede consultar registros en desvíos'),
+            ('actualizar_desvios', 'Puede modificar registros en desvíos'),
+            ('eliminar_desvios', 'Puede eliminar registros en desvíos'),
+
+            # Usuarios
+            ('crear_usuarios', 'Puede crear registros en usuarios'),
+            ('leer_usuarios', 'Puede consultar registros en usuarios'),
+            ('actualizar_usuarios', 'Puede modificar registros en usuarios'),
+            ('eliminar_usuarios', 'Puede eliminar registros en usuarios'),
+
+            # Empleados
+            ('crear_empleados', 'Puede crear registros en empleados'),
+            ('leer_empleados', 'Puede consultar registros en empleados'),
+            ('actualizar_empleados', 'Puede modificar registros en empleados'),
+            ('eliminar_empleados', 'Puede eliminar registros en empleados'),
+
+            # Archivos
+            ('crear_archivos', 'Puede crear registros en archivos'),
+            ('leer_archivos', 'Puede consultar registros en archivos'),
+            ('actualizar_archivos', 'Puede modificar registros en archivos'),
+            ('eliminar_archivos', 'Puede eliminar registros en archivos'),
+
+            # Roles
+            ('crear_roles', 'Puede crear registros en roles'),
+            ('leer_roles', 'Puede consultar registros en roles'),
+            ('actualizar_roles', 'Puede modificar registros en roles'),
+            ('eliminar_roles', 'Puede eliminar registros en roles'),
+
+            # Fontaneros
+            ('crear_fontaneros', 'Puede crear registros en fontaneros'),
+            ('leer_fontaneros', 'Puede consultar registros en fontaneros'),
+            ('actualizar_fontaneros', 'Puede modificar registros en fontaneros'),
+            ('eliminar_fontaneros', 'Puede eliminar registros en fontaneros'),
+
+            # Intervenciones
+            ('crear_intervenciones', 'Puede crear registros en intervenciones'),
+            ('leer_intervenciones', 'Puede consultar registros en intervenciones'),
+            ('actualizar_intervenciones', 'Puede modificar registros en intervenciones'),
+            ('eliminar_intervenciones', 'Puede eliminar registros en intervenciones'),
+        ]
+
+        # Sierve para Insertar permisos si es que existen
+        for nombre, descripcion in permisos_por_defecto:
+            permiso_existente = db.query(Permissions).filter(Permissions.name == nombre).first()
+            if not permiso_existente:
+                nuevo_permiso = Permissions(
+                    name=nombre,
+                    description=descripcion,
+                    status=True
+                )
+                db.add(nuevo_permiso)
+        
+        db.commit()
+        print("Permisos por defecto creados exitosamente")
+
     except Exception as e:
         db.rollback()
     finally:
@@ -98,6 +176,7 @@ api_version.include_router(report_router)
 api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)
 api_version.include_router(connection_router)
+api_version.include_router(files_router)
 #-----
 
 

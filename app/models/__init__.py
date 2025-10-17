@@ -7,3 +7,4 @@ from .rol_permissions.rol_permissions import Rol_permissions
 from .permissions.permissions import Permissions
 from .connection.connections import Connection
 from .pipes.pipes import Pipes
+from .files.files import Files

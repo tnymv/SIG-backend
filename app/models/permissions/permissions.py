@@ -1,6 +1,6 @@
 #models/permissions/permissions.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from datetime import datetime
 from app.db.database import Base
 from sqlalchemy.orm import relationship
@@ -11,6 +11,7 @@ class Permissions(Base):
     id_permissions = Column(Integer, primary_key=True, index = True)
     name = Column(String(100), index = True, nullable = False)
     description = Column(String(100), index = True, nullable = False)
+    status = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
