@@ -8,3 +8,4 @@ from .permissions.permissions import Permissions
 from .connection.connections import Connection
 from .pipes.pipes import Pipes
 from .files.files import Files
+from .type_employee.type_employees import TypeEmployee

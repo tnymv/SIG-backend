@@ -9,19 +9,23 @@ from app.controllers import rol_router,employee_router,user_router
 from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
 from app.controllers import files_router
 from app.controllers import connection_router
+from app.controllers import connection_router, type_employee_router
 
 from app.models.user.user import Username
 from app.models.employee.employee import Employee
 from app.models.rol.rol import Rol
 from app.models.permissions.permissions import Permissions
+from app.models.type_employee.type_employees import TypeEmployee
 from app.utils.auth import get_password_hash
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Crear todas las tablas si no existen
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
     try:
+        # Crear Rol administrador si no existe
         admin_role = db.query(Rol).filter(Rol.name == "Administrador").first()
         if not admin_role:
             admin_role = Rol(
@@ -33,18 +37,33 @@ async def lifespan(app: FastAPI):
             db.commit()
             db.refresh(admin_role)
 
+        # Crear TipoEmpleado "Administrador" si no existe
+        admin_type_employee = db.query(TypeEmployee).filter(TypeEmployee.name == "Administrador").first()
+        if not admin_type_employee:
+            admin_type_employee = TypeEmployee(
+                name="Administrador",
+                description="Empleado con acceso completo al sistema",
+                state=True
+            )
+            db.add(admin_type_employee)
+            db.commit()
+            db.refresh(admin_type_employee)
+
+        # Crear Employee admin si no existe
         admin_employee = db.query(Employee).filter(Employee.first_name == "Admin", Employee.last_name == "Sistema").first()
         if not admin_employee:
             admin_employee = Employee(
                 first_name="Admin",
                 last_name="Sistema",
                 phone_number="00000000",
-                state=True
+                state=True,
+                id_type_employee=admin_type_employee.id_type_employee  # asignar tipo de empleado
             )
             db.add(admin_employee)
             db.commit()
             db.refresh(admin_employee)
 
+        # Crear Usuario admin si no existe
         admin_user = db.query(Username).filter(Username.email == "admin@sig.com").first()
         if not admin_user:
             admin_user = Username(
@@ -137,10 +156,11 @@ async def lifespan(app: FastAPI):
 
     except Exception as e:
         db.rollback()
+        print(f"Error al inicializar datos: {e}")
     finally:
         db.close()
     
-    yield 
+    yield
 
 app = FastAPI(
     lifespan=lifespan,
@@ -177,6 +197,7 @@ api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)
 api_version.include_router(connection_router)
 api_version.include_router(files_router)
+api_version.include_router(type_employee_router)
 #-----
 
 
