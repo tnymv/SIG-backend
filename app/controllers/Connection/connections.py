@@ -2,16 +2,14 @@ from fastapi import HTTPException, APIRouter, Depends
 from app.models.connection.connections import Connection
 from typing import List
 from datetime import datetime 
-from app.schemas.connections.connection import ConnectionBase, ConnectionResponse, ConnectionUpdate, ConnectionCreate
+from app.schemas.connections.connection import ConnectionResponse, ConnectionUpdate, ConnectionCreate
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
-from app.utils.logger import create_log
 from app.models.pipes.pipes import Pipes
-from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(prefix="/connections", tags=['Connections'])
 
@@ -171,18 +169,15 @@ async def update_connection(
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "La conexión no existe"))
 
     try:
-        # Actualizar coordenadas si ambas están presentes
         if connection_data.latitude is not None and connection_data.longitude is not None:
             connection.coordenates = f"SRID=4326;POINT({connection_data.longitude} {connection_data.latitude})"
         elif connection_data.latitude is not None or connection_data.longitude is not None:
             raise HTTPException(status_code=400, detail="Ambas coordenadas deben ser proporcionadas juntas.")
 
-        # Actualizar campos normales
         for field, value in connection_data.dict(exclude_unset=True).items():
             if field not in ["latitude", "longitude", "pipe_ids"]:
                 setattr(connection, field, value)
 
-        # Actualizar relación con pipes
         if connection_data.pipe_ids is not None:
             pipes = db.query(Pipes).filter(Pipes.id_pipes.in_(connection_data.pipe_ids)).all()
             if len(pipes) != len(connection_data.pipe_ids):
@@ -193,11 +188,9 @@ async def update_connection(
         db.commit()
         db.refresh(connection)
 
-        # 🔹 Extraer lat/lon
         lat = db.scalar(func.ST_Y(connection.coordenates))
         lon = db.scalar(func.ST_X(connection.coordenates))
 
-        # 🔹 Convertir pipes a lista de diccionarios
         pipes_data = [
             {
                 "id_pipes": p.id_pipes,
@@ -207,7 +200,6 @@ async def update_connection(
             for p in connection.pipes
         ]
 
-        # 🔹 Preparar respuesta final
         response_data = ConnectionResponse(
             id_connection=connection.id_connection,
             latitude=lat,

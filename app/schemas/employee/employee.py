@@ -6,15 +6,14 @@ from typing import Optional
 class EmployeeBase(BaseModel):
     first_name: str
     last_name: str
-    phone_number: str
+    phone_number: Optional[str] = None
     state: bool
+    id_type_employee: int  # <-- nuevo campo obligatorio para crear empleado
 
 # Para respuesta al cliente (salida)
 class EmployeeResponse(EmployeeBase):
     id_employee: int
-    first_name: str
-    last_name: str
-    phone_number: str
+    id_type_employee: int
     created_at: datetime
     updated_at: datetime
 
@@ -26,4 +25,5 @@ class EmployeeUpdate(BaseModel):
     last_name: Optional[str] = None
     phone_number: Optional[str] = None
     state: Optional[bool] = None
+    id_type_employee: Optional[int] = None  # <-- opcional para actualizar
     updated_at: Optional[datetime] = None

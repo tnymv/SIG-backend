@@ -1,5 +1,5 @@
 #model/tanks/tanks.py
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from datetime import datetime
 from app.db.database import Base
 from geoalchemy2 import Geometry

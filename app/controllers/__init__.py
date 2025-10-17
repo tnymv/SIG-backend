@@ -7,3 +7,4 @@ from app.controllers.Report.report import router as report_router
 from app.controllers.permissions.permissions import router as permsission_router
 from app.controllers.pipes.pipes import router as pipes_router
 from app.controllers.Connection.connections import router as connection_router
+from app.controllers.type_employee.type_employees import router as type_employee_router
