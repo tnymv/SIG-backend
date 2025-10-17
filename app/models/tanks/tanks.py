@@ -5,6 +5,7 @@ from app.db.database import Base
 from geoalchemy2 import Geometry
 from sqlalchemy.orm import relationship 
 from sqlalchemy.dialects.postgresql import ARRAY
+from app.models.tanks.tanks_pipes import tank_pipes
 
 class Tank(Base):
     __tablename__ = "tanks"
@@ -18,3 +19,4 @@ class Tank(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     state = Column(Boolean, default=True)
     
+    pipes = relationship("Pipes", secondary=tank_pipes, back_populates="tanks")

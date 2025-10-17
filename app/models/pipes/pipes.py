@@ -6,6 +6,8 @@ from app.db.database import Base
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 from sqlalchemy import Boolean
+from app.models.tanks.tanks_pipes import tank_pipes
+from app.models.pipes.pipe_connections import pipe_connections
 
 class Pipes(Base):
     __tablename__ = "pipes"
@@ -21,8 +23,5 @@ class Pipes(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     #Relacion con la table
-    connections = relationship("Connection", back_populates="pipe", cascade="all, delete-orphan")
-
-    #pipes = relationship("Pipes", back_populates="interventions")
-    #pipes = relationship("Pipes", back_populates="tanks")
-    #pipes = relationship("Pipes", back_populates="plumber")
+    connections = relationship("Connection", secondary=pipe_connections, back_populates="pipes")
+    tanks = relationship("Tank", secondary=tank_pipes, back_populates="pipes")

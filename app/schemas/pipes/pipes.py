@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class PipesBase(BaseModel):
     material: str
@@ -11,9 +11,11 @@ class PipesBase(BaseModel):
     observations: str
     latitude: float
     longitude: float
+    tank_ids: Optional[List[int]] = [] 
 
-class PipesResponse(BaseModel): 
-    pass
+class TankSimple(BaseModel):
+    id_tank: int
+    name: str
 
 class PipesResponse(BaseModel):
     id_pipes: int
@@ -27,6 +29,7 @@ class PipesResponse(BaseModel):
     observations: str
     created_at: datetime
     updated_at: datetime
+    tanks: List[TankSimple] = []
 
     class Config:
         from_attributes = True
@@ -57,3 +60,4 @@ class PipesUpdate(BaseModel):
     longitude: Optional[float] = None
     observations: Optional[str] = None
     updated_at: datetime = datetime.now()
+    tank_ids: Optional[List[int]] = None

@@ -10,10 +10,12 @@ from app.utils.response import success_response, error_response, existence_respo
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 from app.utils.logger import create_log
+from app.models.pipes.pipes import Pipes
+from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(prefix="/connections", tags=['Connections'])
 
-@router.get('', response_model = List[ConnectionResponse])
+@router.get('', response_model=List[ConnectionResponse])
 async def get_all_connections(
     db: Session = Depends(get_db),
     page: int = 1,
@@ -22,25 +24,22 @@ async def get_all_connections(
 ):
     try:
         if page < 1 or limit < 1:
-            raise HTTPException(
-                status_code=400,
-                detail=" La página y el mímite deben ser mayores a 0"
-            )
+            raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores a 0")
+        
         offset = (page - 1) * limit
-        connection = db.query(
+        connections = db.query(
             Connection,
             func.ST_X(Connection.coordenates).label('longitude'),
             func.ST_Y(Connection.coordenates).label('latitude')
         ).offset(offset).limit(limit).all()
-        
-        if not connection: 
+
+        if not connections: 
             return success_response(data=[], message="No hay conexiones registradas")
         
         connection_response = []
-        for conn, longitude, latitude in connection:
+        for conn, longitude, latitude in connections:
             conn_data = {
                 "id_connection": conn.id_connection,
-                "id_pipe": conn.id_pipe,
                 "latitude": latitude,
                 "longitude": longitude,
                 "material": conn.material,
@@ -54,13 +53,11 @@ async def get_all_connections(
                 "state": conn.state,
                 "created_at": conn.created_at,
                 "updated_at": conn.updated_at,
+                "pipes": [{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in conn.pipes]
             }
             connection_response.append(ConnectionResponse(**conn_data).model_dump(mode="json"))
         
-        return success_response(
-            data=connection_response,
-            message="Conexiones obtenidas correctamente"
-        )
+        return success_response(data=connection_response, message="Conexiones obtenidas correctamente")
     except Exception as e:
         return error_response(f"Error al obtener las conexiones: {str(e)}")
 
@@ -78,16 +75,11 @@ async def get_connection_by_id(
         ).filter(Connection.id_connection == connection_id).first()
 
         if not result: 
-            raise HTTPException(
-                status_code=404,
-                detail=existence_response_dict(False, "La conexión no existe"),
-                headers={"X-Error": "La conexión no existe"}
-            )
+            raise HTTPException(status_code=404, detail=existence_response_dict(False, "La conexión no existe"))
+
         conn, longitude, latitude = result
-        
         conn_data = {
             "id_connection": conn.id_connection,
-            "id_pipe": conn.id_pipe,
             "latitude": latitude,
             "longitude": longitude,
             "material": conn.material,
@@ -96,38 +88,30 @@ async def get_connection_by_id(
             "connection_type": conn.connection_type,
             "depth_m": conn.depth_m,
             "installed_date": conn.installed_date,
-            "installed_by": conn.installed_by,
+            "installed_by": current_user.user,
             "description": conn.description,
             "state": conn.state,
             "created_at": conn.created_at,
             "updated_at": conn.updated_at,
+            "pipes": [{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in conn.pipes]
         }
         return success_response(ConnectionResponse(**conn_data).model_dump(mode="json"), "Conexión obtenida correctamente")
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener la conexión: {str(e)}",
-            headers={"X-Error": f"Error al obtener la conexión: {str(e)}"}
-        )
+        raise HTTPException(status_code=500, detail=f"Error al obtener la conexión: {str(e)}")
 
-@router.post('', response_model = ConnectionBase)
+@router.post('', response_model=ConnectionResponse)
 async def create_connection(
     connection_data: ConnectionCreate,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
-    if db.query(Connection).filter(Connection.id_pipe == connection_data.id_pipe).first():
-        raise HTTPException(
-            status_code=409,
-            detail=existence_response_dict(True, "La conexión ya existe"),
-            headers={"X-Error": "La conexión ya existe"}
-        )
-    try: 
+    try:
+        # Crear conexión base
         new_connection = Connection(
-            id_pipe=connection_data.id_pipe,
-            coordenates=f'POINT({connection_data.longitude} {connection_data.latitude})',
+            coordenates=f'SRID=4326;POINT({connection_data.longitude} {connection_data.latitude})',
             material=connection_data.material,
             diameter_mn=connection_data.diameter_mn,
             pressure_nominal=connection_data.pressure_nominal,
@@ -136,16 +120,24 @@ async def create_connection(
             installed_date=connection_data.installed_date,
             installed_by=current_user.user,
             description=connection_data.description,
-            state= True,
+            state=True,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
+
+        # 🔹 Asociar pipes si existen
+        if connection_data.pipe_ids:
+            pipes = db.query(Pipes).filter(Pipes.id_pipes.in_(connection_data.pipe_ids)).all()
+            if len(pipes) != len(connection_data.pipe_ids):
+                raise HTTPException(status_code=404, detail="Una o más tuberías no existen.")
+            new_connection.pipes = pipes
+
         db.add(new_connection)
         db.commit()
         db.refresh(new_connection)
-        connection_reponse = ConnectionResponse(
+
+        response = ConnectionResponse(
             id_connection=new_connection.id_connection,
-            id_pipe=new_connection.id_pipe,
             latitude=connection_data.latitude,
             longitude=connection_data.longitude,
             material=new_connection.material,
@@ -154,25 +146,18 @@ async def create_connection(
             connection_type=new_connection.connection_type,
             depth_m=new_connection.depth_m,
             installed_date=new_connection.installed_date,
-            installed_by=current_user.user,
+            installed_by=new_connection.installed_by,
             description=new_connection.description,
             state=new_connection.state,
             created_at=new_connection.created_at,
-            updated_at=new_connection.updated_at
+            updated_at=new_connection.updated_at,
+            pipes=[{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in new_connection.pipes]
         )
-        
-        return success_response(connection_reponse.model_dump(mode="json"), "Conexión creada correctamente")
+        return success_response(response.model_dump(mode="json"), "Conexión creada correctamente")
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al crear la conexión: {str(e)}")
-    
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al crear la conexión: {str(e)}",
-            headers={"X-Error": f"Error al crear la conexión: {str(e)}"}
-        )
 
 @router.put('/{connection_id}', response_model=ConnectionResponse)
 async def update_connection(
@@ -183,86 +168,73 @@ async def update_connection(
 ):
     connection = db.query(Connection).filter(Connection.id_connection == connection_id).first()
     if not connection:
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "La conexión no existe"),
-            headers={"X-Error": "La conexión no existe"}
-        )
-    
-    if connection_data.id_pipe != connection.id_pipe:
-        if db.query(Connection).filter(Connection.id_pipe == connection_data.id_pipe).first():
-            raise HTTPException(
-                status_code=409,
-                detail=existence_response_dict(True, "La conexión con el id_pipe proporcionado ya existe"),
-                headers={"X-Error": "La conexión con el id_pipe proporcionado ya existe"}
-            )
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "La conexión no existe"))
+
     try:
-        if connection_data.id_pipe is not None:
-            connection.id_pipe = connection_data.id_pipe
-        
+        # Actualizar coordenadas si ambas están presentes
         if connection_data.latitude is not None and connection_data.longitude is not None:
             connection.coordenates = f"SRID=4326;POINT({connection_data.longitude} {connection_data.latitude})"
         elif connection_data.latitude is not None or connection_data.longitude is not None:
-            raise HTTPException(
-                status_code=400,
-                detail="Ambas coordenadas (latitud y longitud) deben ser proporcionadas juntas.",
-                headers={"X-Error": "Coordenadas incompletas"}
-            )
-        if connection_data.material is not None:
-            connection.material = connection_data.material
-        if connection_data.diameter_mn is not None:
-            connection.diameter_mn = connection_data.diameter_mn
-        if connection_data.pressure_nominal is not None:
-            connection.pressure_nominal = connection_data.pressure_nominal
-        if connection_data.connection_type is not None:
-            connection.connection_type = connection_data.connection_type
-        if connection_data.depth_m is not None:
-            connection.depth_m = connection_data.depth_m
-        if connection_data.installed_date is not None:
-            connection.installed_date = connection_data.installed_date
-        if connection_data.installed_by is not None:
-            connection.installed_by = connection_data.installed_by
-        if connection_data.description is not None:
-            connection.description = connection_data.description
-        if connection_data.state is not None:
-            connection.state = connection_data.state
+            raise HTTPException(status_code=400, detail="Ambas coordenadas deben ser proporcionadas juntas.")
+
+        # Actualizar campos normales
+        for field, value in connection_data.dict(exclude_unset=True).items():
+            if field not in ["latitude", "longitude", "pipe_ids"]:
+                setattr(connection, field, value)
+
+        # Actualizar relación con pipes
+        if connection_data.pipe_ids is not None:
+            pipes = db.query(Pipes).filter(Pipes.id_pipes.in_(connection_data.pipe_ids)).all()
+            if len(pipes) != len(connection_data.pipe_ids):
+                raise HTTPException(status_code=404, detail="Una o más tuberías no existen.")
+            connection.pipes = pipes
+
         connection.updated_at = datetime.now()
-        
         db.commit()
         db.refresh(connection)
-        result = db.query(
-            Connection,
-            func.ST_X(Connection.coordenates).label('longitude'),
-            func.ST_Y(Connection.coordenates).label('latitude')
-        ).filter(Connection.id_connection == connection_id).first()
-        
-        conn, longitude, latitude = result
-        conn_data = {
-            "id_connection": conn.id_connection,
-            "id_pipe": conn.id_pipe,
-            "latitude": latitude,
-            "longitude": longitude,
-            "material": conn.material,
-            "diameter_mn": conn.diameter_mn,
-            "pressure_nominal": conn.pressure_nominal,
-            "connection_type": conn.connection_type,
-            "depth_m": conn.depth_m,
-            "installed_date": conn.installed_date,
-            "installed_by": conn.installed_by,
-            "description": conn.description,
-            "state": conn.state,
-            "created_at": conn.created_at,
-            "updated_at": conn.updated_at,
-        }
-        return success_response(ConnectionResponse(**conn_data).model_dump(mode="json"), "Conexión actualizada correctamente")
+
+        # 🔹 Extraer lat/lon
+        lat = db.scalar(func.ST_Y(connection.coordenates))
+        lon = db.scalar(func.ST_X(connection.coordenates))
+
+        # 🔹 Convertir pipes a lista de diccionarios
+        pipes_data = [
+            {
+                "id_pipes": p.id_pipes,
+                "material": getattr(p, "material", None),
+                "diameter": float(getattr(p, "diameter", 0)) if getattr(p, "diameter", None) is not None else None
+            }
+            for p in connection.pipes
+        ]
+
+        # 🔹 Preparar respuesta final
+        response_data = ConnectionResponse(
+            id_connection=connection.id_connection,
+            latitude=lat,
+            longitude=lon,
+            material=connection.material,
+            diameter_mn=float(connection.diameter_mn) if connection.diameter_mn else None,
+            pressure_nominal=connection.pressure_nominal,
+            connection_type=connection.connection_type,
+            depth_m=float(connection.depth_m) if connection.depth_m else None,
+            installed_date=connection.installed_date,
+            installed_by=connection.installed_by,
+            description=connection.description,
+            state=connection.state,
+            created_at=connection.created_at,
+            updated_at=connection.updated_at,
+            pipes=pipes_data
+        )
+
+        return success_response(response_data.model_dump(mode="json"), "Conexión creada correctamente")
+
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al actualizar la conexión: {str(e)}",
-            headers={"X-Error": f"Error al actualizar la conexión: {str(e)}"}
-        )
-@router.delete('/{connection_id}', response_model=ConnectionResponse)
+        raise HTTPException(status_code=500, detail=f"Error al actualizar la conexión: {str(e)}")
+
+
+
+@router.delete('/{connection_id}')
 async def delete_connection(
     connection_id: int, 
     db: Session = Depends(get_db),
@@ -270,25 +242,16 @@ async def delete_connection(
 ):
     connection = db.query(Connection).filter(Connection.id_connection == connection_id).first()
     if not connection: 
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "La conexión no existe"),
-            headers={"X-Error": "La conexión no existe"}
-        )
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "La conexión no existe"))
     
     try:
         connection.state = not connection.state
         connection.updated_at = datetime.now()
         db.commit()
         db.refresh(connection)
-        action_description = "activó" if connection.state else "desactivó"
-        
-        status_message = "Tanque activado exitosamente" if connection.state else "Tanque desactivado exitosamente"
-        return success_response(status_message, f"Conexión {action_description} correctamente")
+        action = "activó" if connection.state else "desactivó"
+        msg = f"Conexión {action} correctamente"
+        return success_response(msg, msg)
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al actualizar el estado de la conexión: {str(e)}",
-            headers={"X-Error": f"Error al actualizar el estado de la conexión: {str(e)}"}
-        )
+        raise HTTPException(status_code=500, detail=f"Error al actualizar el estado: {str(e)}")

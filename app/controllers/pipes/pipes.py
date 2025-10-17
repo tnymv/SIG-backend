@@ -1,8 +1,9 @@
 from fastapi import HTTPException, APIRouter
 from app.models.pipes.pipes import Pipes
+from app.models.tanks.tanks import Tank
 from typing import List
 from datetime import datetime
-from app.schemas.pipes.pipes import PipesBase, PipesResponse,PipesResponseCreate, PipesUpdate
+from app.schemas.pipes.pipes import PipesBase, PipesResponse,PipesResponseCreate, PipesUpdate, TankSimple
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -10,7 +11,7 @@ from app.utils.response import success_response, error_response, existence_respo
 from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
-from geoalchemy2 import WKTElement
+from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 
 router = APIRouter(prefix='/pipes', tags=['Pipes'])
@@ -32,7 +33,9 @@ async def get_pipes(
             Pipes,
             func.ST_X(Pipes.coordinates).label('longitude'),
             func.ST_Y(Pipes.coordinates).label('latitude')
-        ).offset(offset).limit(limit).all()
+        ).options(joinedload(Pipes.tanks)) \
+        .offset(offset).limit(limit).all()
+
 
         if not pipes:
             return success_response([])
@@ -50,7 +53,8 @@ async def get_pipes(
                 longitude=longitude,
                 observations=pipe.observations,
                 created_at=pipe.created_at,
-                updated_at=pipe.updated_at
+                updated_at=pipe.updated_at,
+                tanks=[TankSimple(id_tank=t.id_tank, name=t.name) for t in pipe.tanks]
             )
             
             pipes_response.append(pipe_response.model_dump(mode="json"))
@@ -81,7 +85,8 @@ async def get_pipe_by_id(
             Pipes,
             func.ST_X(Pipes.coordinates).label('longitude'),
             func.ST_Y(Pipes.coordinates).label('latitude')
-        ).filter(Pipes.id_pipes == pipe_id).first()
+        ).options(joinedload(Pipes.tanks)) \
+        .filter(Pipes.id_pipes == pipe_id).first()
         
         if not result:
             raise HTTPException(
@@ -103,7 +108,8 @@ async def get_pipe_by_id(
             longitude=longitude,
             observations=pipe.observations,
             created_at=pipe.created_at,
-            updated_at=pipe.updated_at
+            updated_at=pipe.updated_at,
+            tanks=[{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks]
         )
         
         create_log(
@@ -150,6 +156,12 @@ async def create_pipes(
             updated_at=datetime.now()
         )
 
+        # Asignar los tanques seleccionados
+        for tank_id in pipes_data.tank_ids:
+            tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
+            if tank:
+                new_pipes.tanks.append(tank)
+
         db.add(new_pipes)
         db.commit()
         db.refresh(new_pipes)
@@ -165,7 +177,8 @@ async def create_pipes(
             longitude=pipes_data.longitude,  
             observations=new_pipes.observations,
             created_at=new_pipes.created_at,
-            updated_at=new_pipes.updated_at
+            updated_at=new_pipes.updated_at,
+            tanks=[TankSimple(id_tank=t.id_tank, name=t.name) for t in new_pipes.tanks]
         )
 
         create_log(
@@ -226,6 +239,14 @@ async def update_pipe(
             
         if pipe_data.installation_date is not None:
             pipe.installation_date = pipe_data.installation_date
+        
+        if pipe_data.tank_ids is not None:
+            pipe.tanks.clear()
+            for tank_id in pipe_data.tank_ids:
+                tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
+                if tank:
+                    pipe.tanks.append(tank)
+
             
         if pipe_data.latitude is not None and pipe_data.longitude is not None:
             pipe.coordinates = f"SRID=4326;POINT({pipe_data.longitude} {pipe_data.latitude})"
@@ -264,7 +285,8 @@ async def update_pipe(
             longitude=longitude,
             observations=pipe.observations,
             created_at=pipe.created_at,
-            updated_at=pipe.updated_at
+            updated_at=pipe.updated_at,
+            tanks=[{"id_tank": tank.id_tank, "name": tank.name} for tank in pipe.tanks]
         )
         
         create_log(
