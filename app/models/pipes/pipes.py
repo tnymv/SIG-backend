@@ -21,7 +21,8 @@ class Pipes(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     #Relacion con la table
-    #pipes = relationship("Pipes", back_populates="connections")
+    connections = relationship("Connection", back_populates="pipe", cascade="all, delete-orphan")
+
     #pipes = relationship("Pipes", back_populates="interventions")
     #pipes = relationship("Pipes", back_populates="tanks")
     #pipes = relationship("Pipes", back_populates="plumber")
