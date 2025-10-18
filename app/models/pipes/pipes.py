@@ -25,3 +25,4 @@ class Pipes(Base):
     #Relacion con la table
     connections = relationship("Connection", secondary=pipe_connections, back_populates="pipes")
     tanks = relationship("Tank", secondary=tank_pipes, back_populates="pipes")
+    pipe_interventions = relationship("Intervention_entities", back_populates="pipe")

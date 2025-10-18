@@ -20,3 +20,4 @@ class Tank(Base):
     state = Column(Boolean, default=True)
     
     pipes = relationship("Pipes", secondary=tank_pipes, back_populates="tanks")
+    tank_interventions = relationship("Intervention_entities", back_populates="tank")

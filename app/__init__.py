@@ -10,12 +10,19 @@ from app.controllers import auth_router, tank_router, report_router, permsission
 from app.controllers import files_router
 from app.controllers import connection_router
 from app.controllers import connection_router, type_employee_router
+from app.controllers import interventions_router
 
 from app.models.user.user import Username
 from app.models.employee.employee import Employee
 from app.models.rol.rol import Rol
 from app.models.permissions.permissions import Permissions
 from app.models.type_employee.type_employees import TypeEmployee
+from app.models.tanks.tanks import Tank
+from app.models.pipes.pipes import Pipes  
+from app.models.connection.connections import Connection
+
+from app.models.interventions.interventions import Interventions
+from app.models.intervention_entities.intervention_entities import Intervention_entities
 from app.utils.auth import get_password_hash
 
 @asynccontextmanager
@@ -198,6 +205,7 @@ api_version.include_router(pipes_router)
 api_version.include_router(connection_router)
 api_version.include_router(files_router)
 api_version.include_router(type_employee_router)
+api_version.include_router(interventions_router)
 #-----
 
 

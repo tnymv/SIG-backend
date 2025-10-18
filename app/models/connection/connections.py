@@ -22,4 +22,5 @@ class Connection(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     pipes = relationship("Pipes", secondary=pipe_connections, back_populates="connections")
+    connection_interventions = relationship("Intervention_entities", back_populates="connection")
 
