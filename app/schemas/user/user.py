@@ -7,17 +7,19 @@ from pydantic import EmailStr
 class UserBase(BaseModel):
     user: str
     password_hash: str
+    email: EmailStr
     employee_id: int
     rol_id: int
     status: int
 
 # Para respuesta al cliente (salida)
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id_user: int
     user: str
     email: str
+    employee_id: int
+    rol_id: int
     status: int
-    email: str
     created_at: datetime
     updated_at: datetime
 
