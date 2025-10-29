@@ -7,6 +7,14 @@ class PermissionsBase(BaseModel):
     description: str
     status: bool
 
+class PermissionsCreate(PermissionsBase):
+    pass
+
+class PermissionsUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+
 class PermissionsResponse(PermissionsBase):
     id_permissions: int
     created_at: datetime
@@ -14,13 +22,3 @@ class PermissionsResponse(PermissionsBase):
 
     class Config:
         from_attributes = True
-
-class PermissionsCreate(PermissionsBase):
-    name: str
-    description: str
-    status: bool
-
-class PermissionsUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[bool] = None

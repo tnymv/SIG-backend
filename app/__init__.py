@@ -9,7 +9,8 @@ from fastapi import FastAPI, APIRouter
 #from app.controllers import auth_router, report_router, permsission_router
 #from app.controllers import rol_router,employee_router,user_router,pipes_router
 #from app.controllers import interventions_router
-from app.routers import type_employee_router, tank_router
+from app.routers import type_employee_router, tank_router, auth_router, employee_router
+from app.routers import permsission_router
 
 #Aqui se importan los modelos necesarios para la inicialización de datos
 from app.models.type_employee.type_employees import TypeEmployee
@@ -189,12 +190,12 @@ api_version = APIRouter(prefix="/api/v1")
 
 #-----
 #api_version.include_router(rol_router)
-#api_version.include_router(employee_router)
 #api_version.include_router(user_router)
-#api_version.include_router(auth_router)
+api_version.include_router(auth_router)
+api_version.include_router(employee_router)
 api_version.include_router(tank_router)
 #api_version.include_router(report_router)
-#api_version.include_router(permsission_router)
+api_version.include_router(permsission_router)
 #api_version.include_router(pipes_router)
 #api_version.include_router(connection_router)
 #api_version.include_router(files_router)

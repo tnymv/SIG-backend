@@ -70,7 +70,7 @@ async def toggle_type_employee_state(
         toggle_type_employee = toggle_state(db, id_type_employee)
         action = "activo" if toggle_type_employee.state else "inactivo"
         return success_response({
-                    "message": f"Se {action} el tipo de empleado {toggle_type_employee.id_type_employee}, correctamente.",
+                    "message": f"Se {action} el tipo de empleado {toggle_type_employee.name}, correctamente.",
                 })
     except Exception as e:
         return error_response(f"Error al cambiar el estado del tipo de empleado: {e}")
