@@ -1,13 +1,10 @@
-#models/pipes/pipes.py
-
-from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
-from app.db.database import Base
-from sqlalchemy.orm import relationship
-from geoalchemy2 import Geometry
-from sqlalchemy import Boolean
-from app.models.tanks.tanks_pipes import tank_pipes
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from app.models.pipes.pipe_connections import pipe_connections
+from app.models.tanks.tanks_pipes import tank_pipes
+from sqlalchemy.orm import relationship
+from app.db.database import Base
+from geoalchemy2 import Geometry
+from datetime import datetime
 
 class Pipes(Base):
     __tablename__ = "pipes"

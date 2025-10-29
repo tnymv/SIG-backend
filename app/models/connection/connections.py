@@ -1,9 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, DECIMAL, ForeignKey
-from datetime import datetime
-from geoalchemy2 import Geometry
-from app.db.database import Base
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, DECIMAL
 from app.models.pipes.pipe_connections import pipe_connections
+from sqlalchemy.orm import relationship
+from app.db.database import Base
+from geoalchemy2 import Geometry
+from datetime import datetime
 
 class Connection(Base):
     __tablename__ = "connections"

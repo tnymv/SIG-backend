@@ -1,4 +1,3 @@
-# utils/responses.py
 from fastapi.responses import JSONResponse
 
 def success_response(data, message="OK"):

@@ -1,4 +1,3 @@
-# models/tanks/tank_pipes.py
 from sqlalchemy import Table, Column, Integer, ForeignKey
 from app.db.database import Base
 

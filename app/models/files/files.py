@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean
-from datetime import datetime
 from app.db.database import Base
-from sqlalchemy.orm import relationship
+from datetime import datetime
 
 class Files(Base):
     __tablename__ = "files"

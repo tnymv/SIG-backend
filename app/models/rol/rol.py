@@ -1,8 +1,8 @@
 #models/rol/rol.py
 from sqlalchemy import Column, Integer, String,DateTime
-from datetime import datetime
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from datetime import datetime
 
 class Rol(Base):
     __tablename__ = "roles"

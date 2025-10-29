@@ -4,8 +4,16 @@ from typing import Optional
 
 class TypeEmployeeBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: str
     state: bool
+    
+class TypeEmployeeCreate(TypeEmployeeBase): 
+    pass
+
+class TypeEmployeeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    state: Optional[bool] = None
 
 class TypeEmployeeResponse(TypeEmployeeBase):
     id_type_employee: int
@@ -14,10 +22,3 @@ class TypeEmployeeResponse(TypeEmployeeBase):
 
     class Config:
         from_attributes = True
-
-class TypeEmployeeUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    state: Optional[bool] = None
-    updated_at: Optional[datetime] = None
-    

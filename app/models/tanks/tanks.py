@@ -1,11 +1,10 @@
-#model/tanks/tanks.py
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from datetime import datetime
+from app.models.tanks.tanks_pipes import tank_pipes
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import relationship 
 from app.db.database import Base
 from geoalchemy2 import Geometry
-from sqlalchemy.orm import relationship 
-from sqlalchemy.dialects.postgresql import ARRAY
-from app.models.tanks.tanks_pipes import tank_pipes
+from datetime import datetime
 
 class Tank(Base):
     __tablename__ = "tanks"

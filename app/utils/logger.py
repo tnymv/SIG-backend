@@ -1,4 +1,3 @@
-# app/utils/logger.py
 from app.models.log.logs import Logs
 from datetime import datetime
 

@@ -1,10 +1,8 @@
-#models/username/username.py
-
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from datetime import datetime
-from app.db.database import Base
 from sqlalchemy.orm import relationship
-
+from app.db.database import Base
+from datetime import datetime
+    
 class Username(Base):
     __tablename__ = "users"
     

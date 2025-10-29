@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from datetime import datetime
-from app.db.database import Base
+from sqlalchemy import Column, Integer,ForeignKey, DateTime
 from sqlalchemy.orm import relationship
+from app.db.database import Base
+from datetime import datetime
 
 class Intervention_entities(Base):
     __tablename__ = "intervention_entities"

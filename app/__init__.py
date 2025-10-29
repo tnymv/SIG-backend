@@ -1,29 +1,23 @@
-from fastapi import FastAPI, APIRouter
-from starlette.responses import RedirectResponse
 from app.db.database import engine, Base, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import RedirectResponse
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, APIRouter
 
 #Aqui se importan los los schemmas
-from app.controllers import rol_router,employee_router,user_router 
-from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
-from app.controllers import files_router
-from app.controllers import connection_router
-from app.controllers import connection_router, type_employee_router
-from app.controllers import interventions_router
+#from app.controllers import files_router,connection_router,connection_router, type_employee_router
+#from app.controllers import auth_router, report_router, permsission_router
+#from app.controllers import rol_router,employee_router,user_router,pipes_router
+#from app.controllers import interventions_router
+from app.routers import type_employee_router, tank_router
 
-from app.models.user.user import Username
-from app.models.employee.employee import Employee
-from app.models.rol.rol import Rol
-from app.models.permissions.permissions import Permissions
+#Aqui se importan los modelos necesarios para la inicialización de datos
 from app.models.type_employee.type_employees import TypeEmployee
-from app.models.tanks.tanks import Tank
-from app.models.pipes.pipes import Pipes  
-from app.models.connection.connections import Connection
-
-from app.models.interventions.interventions import Interventions
-from app.models.intervention_entities.intervention_entities import Intervention_entities
+from app.models.permissions.permissions import Permissions
+from app.models.employee.employee import Employee
 from app.utils.auth import get_password_hash
+from app.models.user.user import Username
+from app.models.rol.rol import Rol
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -194,18 +188,18 @@ app.add_middleware(
 api_version = APIRouter(prefix="/api/v1")
 
 #-----
-api_version.include_router(rol_router)
-api_version.include_router(employee_router)
-api_version.include_router(user_router)
-api_version.include_router(auth_router)
+#api_version.include_router(rol_router)
+#api_version.include_router(employee_router)
+#api_version.include_router(user_router)
+#api_version.include_router(auth_router)
 api_version.include_router(tank_router)
-api_version.include_router(report_router)
-api_version.include_router(permsission_router)
-api_version.include_router(pipes_router)
-api_version.include_router(connection_router)
-api_version.include_router(files_router)
+#api_version.include_router(report_router)
+#api_version.include_router(permsission_router)
+#api_version.include_router(pipes_router)
+#api_version.include_router(connection_router)
+#api_version.include_router(files_router)
 api_version.include_router(type_employee_router)
-api_version.include_router(interventions_router)
+#api_version.include_router(interventions_router)
 #-----
 
 
