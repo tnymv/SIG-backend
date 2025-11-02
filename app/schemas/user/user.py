@@ -10,16 +10,22 @@ class UserBase(BaseModel):
     email: EmailStr
     employee_id: int
     rol_id: int
-    status: int
+    status: bool
+
+class UserCreate(UserBase):
+    pass
+
+class UserUpdate(BaseModel):
+    user: Optional[str] = None
+    password: Optional[str] = None  # Opcional para no cambiarla siempre
+    email: Optional[EmailStr] = None
+    employee_id: Optional[int] = None
+    rol_id: Optional[int] = None
+    status: Optional[int] = None
 
 # Para respuesta al cliente (salida)
-class UserResponse(BaseModel):
+class UserResponse(UserBase):
     id_user: int
-    user: str
-    email: str
-    employee_id: int
-    rol_id: int
-    status: int
     created_at: datetime
     updated_at: datetime
 
@@ -29,12 +35,3 @@ class UserResponse(BaseModel):
 class UserLogin(BaseModel):
     user: str
     password_hash: str
-
-
-class UserUpdate(BaseModel):
-    user: Optional[str] = None
-    password: Optional[str] = None  # Opcional para no cambiarla siempre
-    email: Optional[EmailStr] = None
-    employee_id: Optional[int] = None
-    rol_id: Optional[int] = None
-    status: Optional[int] = None

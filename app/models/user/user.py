@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 from datetime import datetime
@@ -14,7 +14,7 @@ class Username(Base):
     rol_id = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(Integer, default=1)  # 1: activo, 0: inactivo
+    status = Column(Boolean, default=True)
     
     # Relaciones
     employee = relationship("Employee", back_populates="users")
