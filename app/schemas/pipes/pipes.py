@@ -13,7 +13,7 @@ class PipesBase(BaseModel):
     observations: str
     latitude: float
     longitude: float
-    tank_ids: Optional[List[int]] = [] 
+    tank_ids: Optional[List[int]] = []
 
 class TankSimple(BaseModel):
     id_tank: int

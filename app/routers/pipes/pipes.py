@@ -16,7 +16,7 @@ async def list_pipes(
     page: int = 1,
     limit: int = 10,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         pipes = get_all(db, page, limit)
@@ -29,7 +29,7 @@ async def list_pipes(
 async def get_pipe(
     id_pipe: int,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         pipe = get_by_id(db, id_pipe)
@@ -42,7 +42,7 @@ async def get_pipe(
 async def create_pipe(
     data: PipesResponseCreate,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         new_pipe = create(db, data)
@@ -56,7 +56,7 @@ async def update_pipe(
     id_pipe: int,
     data: PipesUpdate,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         updated_pipe = update(db, id_pipe, data)
@@ -69,7 +69,7 @@ async def update_pipe(
 async def toggle_pipe_state(
     id_pipe: int,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         toggle_pipe = toggle_state(db, id_pipe)

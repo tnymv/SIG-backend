@@ -5,13 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 #Aqui se importan los los schemmas
-#from app.controllers import files_router,connection_router,connection_router, type_employee_router
-#from app.controllers import auth_router, report_router, permsission_router
-#from app.controllers import rol_router,employee_router,user_router,pipes_router
-#from app.controllers import interventions_router
 from app.routers import type_employee_router, tank_router, auth_router, employee_router
 from app.routers import permsission_router,rol_router, user_router, report_router
-from app.routers import pipes_router
+from app.routers import pipes_router, connection_router, files_router, interventions_router
 
 #Aqui se importan los modelos necesarios para la inicialización de datos
 from app.models.type_employee.type_employees import TypeEmployee
@@ -198,10 +194,10 @@ api_version.include_router(tank_router)
 api_version.include_router(report_router)
 api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)
-#api_version.include_router(connection_router)
-#api_version.include_router(files_router)
+api_version.include_router(connection_router)
+api_version.include_router(files_router)
 api_version.include_router(type_employee_router)
-#api_version.include_router(interventions_router)
+api_version.include_router(interventions_router)
 #-----
 
 

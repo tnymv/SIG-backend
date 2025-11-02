@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, DECIMAL
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Numeric
 from app.models.pipes.pipe_connections import pipe_connections
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -10,10 +10,10 @@ class Connection(Base):
     id_connection = Column(Integer, primary_key=True, index=True)
     coordenates = Column(Geometry(geometry_type='POINT', srid=4326))
     material = Column(String(50))
-    diameter_mn = Column(DECIMAL(10, 2))
+    diameter_mn = Column(Numeric(10, 2))
     pressure_nominal = Column(String(50))
     connection_type = Column(String(50))
-    depth_m  = Column(DECIMAL(5,2))
+    depth_m  = Column(Numeric(5,2))
     installed_date = Column(DateTime)              
     installed_by = Column(String(100))
     description = Column(Text)

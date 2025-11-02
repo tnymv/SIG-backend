@@ -1,31 +1,30 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
+from decimal import Decimal
+from pydantic import Field
 
-# 🔹 Base con campos comunes
 class ConnectionBase(BaseModel):
     latitude: float
     longitude: float
     material: str
-    diameter_mn: float
+    diameter_mn: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     pressure_nominal: str
     connection_type: str 
-    depth_m: float
+    depth_m: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installed_date: datetime
     installed_by: Optional[str] = None
     description: Optional[str] = None
     state: bool = True
 
-# 🔹 Crear conexión (puede incluir pipes)
 class ConnectionCreate(ConnectionBase):
     pipe_ids: Optional[List[int]] = []
 
-# 🔹 Actualizar conexión (campos opcionales)
 class ConnectionUpdate(BaseModel):
     latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    longitude: Optional[Decimal] = Field(..., max_digits=10, decimal_places=6, gt=0)
     material: Optional[str] = None
-    diameter_mn: Optional[float] = None
+    diameter_mn: Optional[Decimal] = Field(..., max_digits=10, decimal_places=6, gt=0)
     pressure_nominal: Optional[str] = None
     connection_type: Optional[str] = None 
     depth_m: Optional[float] = None
@@ -36,16 +35,15 @@ class ConnectionUpdate(BaseModel):
     pipe_ids: Optional[List[int]] = []
     updated_at: datetime = datetime.now()
 
-# 🔹 Respuesta
 class ConnectionResponse(BaseModel):
     id_connection: int
     latitude: float
     longitude: float
     material: str
-    diameter_mn: float
+    diameter_mn: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     pressure_nominal: str
     connection_type: str
-    depth_m: float
+    depth_m: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installed_date: datetime
     installed_by: Optional[str]
     description: Optional[str]
