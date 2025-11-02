@@ -10,7 +10,6 @@ from typing import List
 
 router = APIRouter(prefix="/pipes", tags=["Pipes"])
 
-# ✅ GET ALL PIPES
 @router.get("", response_model=List[PipesResponse])
 async def list_pipes(
     page: int = 1,
@@ -24,7 +23,6 @@ async def list_pipes(
     except Exception as e:
         return error_response(f"Error al obtener las tuberías: {e}")
 
-# ✅ GET BY ID
 @router.get("/{id_pipe}", response_model=PipesResponse)
 async def get_pipe(
     id_pipe: int,
@@ -37,7 +35,6 @@ async def get_pipe(
     except Exception as e:
         return error_response(f"Error al obtener la tubería: {e}")
 
-# ✅ CREATE PIPE
 @router.post("", response_model=PipesResponse)
 async def create_pipe(
     data: PipesResponseCreate,
@@ -50,7 +47,6 @@ async def create_pipe(
     except Exception as e:
         return error_response(f"Error al crear la tubería: {e}")
 
-# ✅ UPDATE PIPE
 @router.put("/{id_pipe}", response_model=PipesResponse)
 async def update_pipe(
     id_pipe: int,
@@ -64,7 +60,6 @@ async def update_pipe(
     except Exception as e:
         return error_response(f"Error al actualizar la tubería: {e}")
 
-# ✅ TOGGLE (ACTIVAR / INACTIVAR)
 @router.delete("/{id_pipe}")
 async def toggle_pipe_state(
     id_pipe: int,

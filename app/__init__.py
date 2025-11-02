@@ -151,11 +151,9 @@ async def lifespan(app: FastAPI):
                 db.add(nuevo_permiso)
         
         db.commit()
-        print("Permisos por defecto creados exitosamente")
 
     except Exception as e:
         db.rollback()
-        print(f"Error al inicializar datos: {e}")
     finally:
         db.close()
     
