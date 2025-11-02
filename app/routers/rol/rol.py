@@ -14,7 +14,8 @@ router = APIRouter(prefix='/rol', tags=['Rol'])
 async def list_rol(
     page: int = 1,
     limit: int = 5,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try: 
         rol = get_all(db, page, limit)
@@ -25,7 +26,8 @@ async def list_rol(
 @router.get('/{id_rol}', response_model = RolResponse)
 async def get_rol(
     id_rol : int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try: 
         rol = get_by_id(db, id_rol)
@@ -36,7 +38,8 @@ async def get_rol(
 @router.post('', response_model = RolResponse)
 async def create_rol(
     data: RolCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         new_rol = create(db, data)

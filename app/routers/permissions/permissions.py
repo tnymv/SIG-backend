@@ -19,7 +19,7 @@ async def list_permission(
     page: int = 1,
     limit: int = 5,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         permissions = get_all(db, page, limit)
@@ -31,7 +31,7 @@ async def list_permission(
 async def get_permissions(
     permission_id: int,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)    
+    current_user: UserLogin = Depends(get_current_active_user)    
 ):
     try:
         permission = get_by_id(db, permission_id)
@@ -43,7 +43,7 @@ async def get_permissions(
 async def create_permission(
     data: PermissionsCreate,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)  
+    current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
         new_permission = create(db,data)
@@ -56,7 +56,7 @@ async def update_permission(
     permission_id: int,
     data: PermissionsUpdate,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)  
+    current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
         updated_permission = update(db, permission_id, data)
@@ -68,7 +68,7 @@ async def update_permission(
 async def toggle_permission_state(
     permission_id: int,
     db: Session = Depends(get_db),
-    # current_user: UserLogin = Depends(get_current_active_user)  
+    current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
         toggle_permission = toggle_state(db, permission_id)

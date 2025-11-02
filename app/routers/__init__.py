@@ -3,9 +3,9 @@ from app.routers.employee.employee import router as employee_router
 from app.routers.user.user import router as user_router
 from app.routers.auth.auth import router as auth_router
 from app.routers.tank.tank import router as tank_router
-# from app.controllers.Report.report import router as report_router
+from app.routers.report.report import router as report_router
 from app.routers.permissions.permissions import router as permsission_router
-# from app.controllers.pipes.pipes import router as pipes_router
+from app.routers.pipes.pipes import router as pipes_router
 # from app.controllers.Connection.connections import router as connection_router
 # from app.controllers.files.files import router as files_router
 from app.routers.type_employee.type_employee import router as type_employee_router

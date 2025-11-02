@@ -14,7 +14,8 @@ router = APIRouter(prefix='/user', tags=['User'])
 async def list_user(
     page: int = 1,
     limit: int = 5, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try: 
         user = get_all(db, page, limit)
@@ -25,7 +26,8 @@ async def list_user(
 @router.get('/{id_user}', response_model = UserResponse)
 async def get_user(
     id_user: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         user = get_by_id(db, id_user)
@@ -36,7 +38,8 @@ async def get_user(
 @router.post('', response_model = UserResponse)
 async def create_user(
     data: UserCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         new_user = create(db, data)
@@ -48,7 +51,8 @@ async def create_user(
 async def update_user(
     id_user: int,
     data: UserUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         update_user  = update(db, id_user, data)
@@ -59,7 +63,8 @@ async def update_user(
 @router.delete('/{id_user}')
 async def toggle_user(
     id_user: int,
-    db: Session = Depends (get_db)
+    db: Session = Depends (get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
         toggle_user = toggle_state(db, id_user)
