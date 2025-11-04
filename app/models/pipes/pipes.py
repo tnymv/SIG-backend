@@ -14,7 +14,7 @@ class Pipes(Base):
     status=Column(Boolean, default=True)
     size= Column(Numeric(10, 6), index=True, nullable=False)
     installation_date = Column(DateTime, nullable=True)
-    coordinates = Column(Geometry(geometry_type="POINT", srid=4326), nullable=False)
+    coordinates = Column(Geometry(geometry_type="LINESTRING", srid=4326), nullable=False)
     observations=Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

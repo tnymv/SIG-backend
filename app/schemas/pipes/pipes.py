@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from decimal import Decimal
 from pydantic import Field
 
@@ -11,9 +11,8 @@ class PipesBase(BaseModel):
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
     observations: str
-    latitude: float
-    longitude: float
-    tank_ids: Optional[List[int]] = []
+    coordinates: List[Tuple[float, float]]
+    tank_ids: Optional[List[int]] = [] 
 
 class TankSimple(BaseModel):
     id_tank: int
@@ -26,8 +25,7 @@ class PipesResponse(BaseModel):
     status: bool
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
-    latitude: float
-    longitude: float
+    coordinates: List[Tuple[float, float]]
     observations: str
     created_at: datetime
     updated_at: datetime
@@ -45,8 +43,6 @@ class PipesUpdate(BaseModel):
     status: Optional[bool] = None
     size: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
     installation_date: Optional[datetime] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    coordinates: Optional[List[Tuple[float, float]]]
     observations: Optional[str] = None
-    updated_at: datetime = datetime.now()
     tank_ids: Optional[List[int]] = None
