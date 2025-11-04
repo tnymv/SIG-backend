@@ -8,7 +8,7 @@ def create_log(db, user_id: int, action: str, entity: str = None, entity_id: int
         entity=entity,
         entity_id=entity_id,
         description=description,
-        created_at=datetime.utcnow()
+        created_at=datetime.now()
     )
     db.add(new_log)
     db.commit()

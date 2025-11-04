@@ -12,7 +12,6 @@ from app.utils.response import success_response, error_response
 
 router = APIRouter(prefix="/files", tags=["Files"])
 
-# 🔹 Obtener todos los archivos
 @router.get("", response_model=List[FilesResponse])
 async def list_files(
     page: int = 1,
@@ -28,8 +27,6 @@ async def list_files(
     except Exception as e:
         return error_response(f"Error al obtener los archivos: {e}")
 
-
-# 🔹 Obtener archivo por ID
 @router.get("/{file_id}", response_model=FilesResponse)
 async def get_file(
     file_id: int,
@@ -42,8 +39,6 @@ async def get_file(
     except Exception as e:
         return error_response(f"Error al obtener el archivo: {e}")
 
-
-# 🔹 Crear archivo
 @router.post("", response_model=FilesResponse)
 async def create_file(
     data: FilesCreate,
@@ -56,8 +51,6 @@ async def create_file(
     except Exception as e:
         return error_response(f"Error al crear el archivo: {e}")
 
-
-# 🔹 Actualizar archivo
 @router.put("/{file_id}", response_model=FilesResponse)
 async def update_file(
     file_id: int,
@@ -71,8 +64,6 @@ async def update_file(
     except Exception as e:
         return error_response(f"Error al actualizar el archivo: {e}")
 
-
-# 🔹 Activar/desactivar archivo
 @router.delete("/{file_id}")
 async def toggle_file_state(
     file_id: int,

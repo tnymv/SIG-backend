@@ -4,6 +4,8 @@ from app.utils.response import existence_response_dict
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime 
+from app.schemas.user.user import UserLogin
+from app.utils.logger import create_log
 
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
@@ -20,7 +22,7 @@ def get_by_id(db: Session, id_type_employee: int):
         )
     return type_employee
 
-def create(db: Session, data: TypeEmployeeCreate):
+def create(db: Session, data: TypeEmployeeCreate,current_user: UserLogin):
     existing = db.query(TypeEmployee).filter(TypeEmployee.name == data.name).first()
     if existing:
         raise HTTPException(
@@ -39,9 +41,17 @@ def create(db: Session, data: TypeEmployeeCreate):
     db.add(new_type_employee)
     db.commit()
     db.refresh(new_type_employee)
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "CREATE",
+        entity = "Type_employee",
+        entity_id=new_type_employee.id_type_employee,
+        description=f"El usuario {current_user.user} creó el permiso {new_type_employee.name}"
+    ) 
     return new_type_employee
 
-def update(db: Session, id_type_employee: int, data: TypeEmployeeUpdate):
+def update(db: Session, id_type_employee: int, data: TypeEmployeeUpdate,current_user: UserLogin):
     type_employee = get_by_id(db, id_type_employee)
     
     for field, value in data.dict(exclude_unset=True).items():
@@ -50,12 +60,33 @@ def update(db: Session, id_type_employee: int, data: TypeEmployeeUpdate):
     type_employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(type_employee)
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "UPDATE",
+        entity = "Permission",
+        entity_id=type_employee.id_type_employee,
+        description=f"El usuario {current_user.user} actualizo el permiso {type_employee.name}"
+    ) 
     return type_employee
 
-def toggle_state(db: Session, id_type_employee: int):
+def toggle_state(db: Session, id_type_employee: int,current_user: UserLogin):
     type_employee = get_by_id(db, id_type_employee)
     type_employee.state = not type_employee.state
     type_employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(type_employee)
+    status = ""
+    if type_employee.state is False:
+        status = "inactivo"
+    else: 
+        status = "activo" 
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "TOGGLE",
+        entity = "Permission",
+        entity_id=type_employee.id_type_employee,
+        description=f"El usuario {current_user.user}, {status} el permiso {type_employee.name}"
+    ) 
     return type_employee

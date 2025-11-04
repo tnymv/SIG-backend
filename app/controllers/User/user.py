@@ -10,210 +10,11 @@ from app.utils.auth import get_password_hash
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.logger import create_log
 from app.schemas.user.user import UserLogin
-
-# router = APIRouter(prefix='/user', tags=['User'])
-
-# @router.get('', response_model = List[UserResponse])
-# async def get_user(
-#     page: int = 1,
-#     limit: int = 5,
-#     db: Session = Depends(get_db),
-#     current_user: UserLogin = Depends(get_current_active_user)
-# ):
-    
-#     try: 
-#         offset = (page - 1) * limit
-#         if page < 1 or limit < 1:
-#             raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
-#         usernames = db.query(Username).offset(offset).limit(limit).all()
-        
-#         create_log(
-#             db,
-#             user_id = current_user.id_user,
-#             action = "READ",
-#             entity = "User",
-#             description= f"El usuario {current_user.user} accedió a la lista de usuarios"
-#         )
-#         return success_response([
-#             UserResponse.model_validate(user).model_dump(mode="json")
-#             for user in usernames
-#             ])
-#     except Exception as e:
-#         return error_response(f"Error al obtener user: {str(e)}")
-
-# @router.post('',response_model = UserResponse)
-# async def create_user(
-#     user_data: UserBase, 
-#     db: Session = Depends(get_db),
-#     current_user: UserLogin = Depends(get_current_active_user)
-#     ):
-#     if db.query(Username).filter(Username.user == user_data.user).first():
-#         raise HTTPException(
-#             status_code=409,
-#             detail=existence_response_dict(True, "El user ya existe"),
-#             headers={"X-Error": "El user ya existe"}
-#         )        
-    
-#     hashed_password = get_password_hash(user_data.password_hash)
-    
-#     try:
-#         new_user = Username(
-#             user=user_data.user,
-#             password_hash=hashed_password,
-#             email= user_data.email,
-#             employee_id=user_data.employee_id,
-#             rol_id=user_data.rol_id,
-#             status=user_data.status,
-#             created_at=datetime.now(),
-#             updated_at=datetime.now()
-#         )
-        
-#         db.add(new_user)
-#         db.commit()
-#         db.refresh(new_user)
-        
-#         create_log(
-#             db,
-#             user_id = current_user.id_user,
-#             action = "CREATE",
-#             entity = "User",
-#             entity_id= new_user.id_user,
-#             description= f"El usuario {current_user.user} creó el usuario {new_user.user}"
-#         )
-#         return success_response(UserResponse.model_validate(new_user).model_dump(mode="json"))
-#     except Exception as e:
-#         db.rollback()  
-#         raise HTTPException(
-#             status_code=500,
-#             detail=error_response(f"Error al crear el user: {str(e)}").body.decode(),
-#             headers={"X-Error": f"Error al crear el user: {str(e)}"}
-#         )
-        
-# @router.put('/{user_id}', response_model=UserResponse)
-# async def update_user(
-#     user_id: int,
-#     user_data: UserUpdate,  # Usa UserUpdate en lugar de UserBase
-#     db: Session = Depends(get_db),
-#     current_user: UserLogin = Depends(get_current_active_user)
-# ):
-#     # Buscar usuario
-#     user = db.query(Username).filter(Username.id_user == user_id).first()
-#     if not user:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=existence_response_dict(False, "El user no existe"),
-#             headers={"X-Error": "El user no existe"}
-#         )
-    
-#     # Validar username único (solo si se proporciona y es diferente)
-#     if user_data.user and user.user != user_data.user:
-#         existing_user = db.query(Username).filter(Username.user == user_data.user).first()
-#         if existing_user:
-#             raise HTTPException(
-#                 status_code=409,
-#                 detail=existence_response_dict(True, "El user ya existe"),
-#                 headers={"X-Error": "El user ya existe"}
-#             )
-    
-#     # Validar email único (solo si se proporciona y es diferente)
-#     if user_data.email and user.email != user_data.email:
-#         existing_email = db.query(Username).filter(Username.email == user_data.email).first()
-#         if existing_email:
-#             raise HTTPException(
-#                 status_code=409,
-#                 detail=existence_response_dict(True, "El email ya está en uso"),
-#                 headers={"X-Error": "El email ya está en uso"}
-#             )
-    
-#     try:
-#         # Actualizar solo los campos proporcionados (no None)
-#         if user_data.user is not None:
-#             user.user = user_data.user
-        
-#         # Solo hashear y actualizar si se envía una nueva contraseña
-#         if user_data.password is not None:
-#             user.password_hash = get_password_hash(user_data.password)
-        
-#         if user_data.email is not None:
-#             user.email = user_data.email
-        
-#         if user_data.employee_id is not None:
-#             user.employee_id = user_data.employee_id
-        
-#         if user_data.rol_id is not None:
-#             user.rol_id = user_data.rol_id
-        
-#         if user_data.status is not None:
-#             user.status = user_data.status
-        
-#         user.updated_at = datetime.now()
-        
-#         db.commit()
-#         db.refresh(user)
-        
-#         create_log(
-#             db, 
-#             user_id = current_user.id_user,
-#             action= "UPDATE",
-#             entity = "User",
-#             entity_id = user.id_user,
-#             description = f"El usuario {current_user.user} actualizó el usuario {user.user}"
-#         )
-#         return success_response(UserResponse.model_validate(user).model_dump(mode="json"))
-    
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(
-#             status_code=500,
-#             detail=error_response(f"Error al actualizar el user: {str(e)}").body.decode(),
-#             headers={"X-Error": f"Error al actualizar el user: {str(e)}"}
-#         )
-        
-# @router.delete('/{user_id}', response_model = UserResponse)
-# async def delete_user(
-#     user_id: int,
-#     db: Session = Depends(get_db),
-#     current_user: UserLogin = Depends(get_current_active_user)
-# ):
-#     user = db.query(Username).filter(Username.id_user == user_id).first()
-#     if not user:
-#         raise HTTPException(
-#             status_code=404,
-#             detail=existence_response_dict(False, "El user no existe"),
-#             headers={"X-Error": "El user no existe"}
-#         )
-
-#     try:
-#         # Alternar el estado del usuario
-#         new_status = 0 if user.status == 1 else 1
-#         user.status = new_status
-#         user.updated_at = datetime.now()
-#         db.commit()
-#         db.refresh(user)
-        
-#         action_text = "activó" if new_status == 1 else "desactivó"
-#         create_log(
-#             db,
-#             user_id = current_user.id_user,
-#             action= "UPDATE",
-#             entity= "User",
-#             entity_id= user.id_user,
-#             description= f"El usuario {current_user.user} {action_text} el usuario {user.user}"
-
-#         )
-#         return success_response(f"Usuario {'activado' if new_status == 1 else 'desactivado'} exitosamente")
-#     except Exception as e:
-#         db.rollback()
-#         raise HTTPException(
-#             status_code=500,
-#             detail=error_response(f"Error al desactivar el user: {str(e)}").body.decode(),
-#             headers={"X-Error": f"Error al desactivar el user: {str(e)}"}
-#         )
         
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
     if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")   
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")  
     return db.query(Username).offset(offset).limit(limit).all()
 
 def get_by_id(db: Session, id_user: int):
@@ -225,7 +26,7 @@ def get_by_id(db: Session, id_user: int):
         )
     return user
         
-def create(db: Session, data: UserCreate):
+def create(db: Session, data: UserCreate,current_user: UserLogin):
     existing = db.query(Username).filter(Username.user == data.user).first()
     if existing:
         raise HTTPException(
@@ -249,10 +50,19 @@ def create(db: Session, data: UserCreate):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "CREATE",
+        entity = "User",
+        entity_id=new_user.id_user,
+        description=f"El usuario {current_user.user} creó el usuario {new_user.user}"
+    ) 
     return new_user
 
-def update(db: Session, id_user: int, data: UserUpdate):
-    user_data = get_by_id(db, id_user)
+def update(db: Session, id_user: int, data: UserUpdate,current_user: UserLogin):
+    user_data = get_by_id(db, id_user, current_user)
     
     for field, value in data.dict(exclude_unset = True).items():
         setattr(user_data, field, value)
@@ -260,12 +70,35 @@ def update(db: Session, id_user: int, data: UserUpdate):
     user_data.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(user_data)
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "UPDATE",
+        entity = "User",
+        entity_id=user_data.id_user,
+        description=f"El usuario {current_user.user} actualizo el usuario {user_data.user}"
+    ) 
     return user_data
 
-def toggle_state(db: Session, id_user: int):
-    user  = get_by_id(db, id_user)
+def toggle_state(db: Session, id_user: int, current_user: UserLogin):
+    user  = get_by_id(db, id_user, current_user)
     user.status = not user.status
     user.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(user)
+    
+    status = ""
+    if user.status is False:
+        status = "inactivo"
+    else: 
+        status = "activo" 
+
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "TOGGLE",
+        entity = "User",
+        entity_id=user.id_user,
+        description=f"El usuario {current_user.user}, {status} el usuario {user.user}"
+    ) 
     return user

@@ -42,7 +42,7 @@ async def create_user(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_user = create(db, data)
+        new_user = create(db, data,current_user)
         return success_response(UserResponse.model_validate(new_user).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el usuario: {e}")
@@ -55,7 +55,7 @@ async def update_user(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        update_user  = update(db, id_user, data)
+        update_user  = update(db, id_user, data,current_user)
         return success_response(UserResponse.model_validate(update_user).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el usuario: {e}")
@@ -67,7 +67,7 @@ async def toggle_user(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        toggle_user = toggle_state(db, id_user)
+        toggle_user = toggle_state(db, id_user,current_user)
         action = "activo" if toggle_user.status else "inactivo"
         return success_response({
             "message": f"Se {action} el usuario {toggle_user.user}, correctamente.",

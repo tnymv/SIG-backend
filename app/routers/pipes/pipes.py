@@ -42,7 +42,7 @@ async def create_pipe(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_pipe = create(db, data)
+        new_pipe = create(db, data,current_user)
         return success_response(PipesResponse.model_validate(new_pipe).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear la tubería: {e}")
@@ -55,7 +55,7 @@ async def update_pipe(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        updated_pipe = update(db, id_pipe, data)
+        updated_pipe = update(db, id_pipe, data,current_user)
         return success_response(PipesResponse.model_validate(updated_pipe).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar la tubería: {e}")
@@ -67,7 +67,7 @@ async def toggle_pipe_state(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        toggle_pipe = toggle_state(db, id_pipe)
+        toggle_pipe = toggle_state(db, id_pipe,current_user)
         action = "activó" if toggle_pipe.status == 1 else "inactivó"
         return success_response({
             "message": f"Se {action} la tubería {toggle_pipe.material}, correctamente.",

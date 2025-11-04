@@ -42,7 +42,7 @@ async def create_connection(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_connection = create(db, data, current_user.user)
+        new_connection = create(db, data, current_user.user,current_user)
         return success_response(ConnectionResponse.model_validate(new_connection).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear la conexión: {e}")
@@ -55,7 +55,7 @@ async def update_connection(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        updated_connection = update(db, connection_id, data)
+        updated_connection = update(db, connection_id, data,current_user)
         return success_response(ConnectionResponse.model_validate(updated_connection).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar la conexión: {e}")
@@ -67,7 +67,7 @@ async def toggle_connection_state(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        toggle_connection = toggle_state(db, connection_id)
+        toggle_connection = toggle_state(db, connection_id,current_user)
         action = "activó" if toggle_connection.state else "desactivó"
         return success_response({
             "message": f"Se {action} la conexión correctamente."

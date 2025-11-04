@@ -2,6 +2,8 @@ from app.schemas.employee.employee import  EmployeeUpdate, EmployeeCreate
 from app.models.type_employee.type_employees import TypeEmployee
 from app.utils.response import  existence_response_dict
 from app.models.employee.employee import Employee
+from app.schemas.user.user import UserLogin
+from app.utils.logger import create_log
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime
@@ -21,7 +23,7 @@ def get_by_id(db: Session, Employee_id: int):
         )
     return employee
 
-def create(db: Session, employee_data: EmployeeCreate):
+def create(db: Session, employee_data: EmployeeCreate, current_user: UserLogin):
     type_emp = db.query(TypeEmployee).filter(TypeEmployee.id_type_employee == employee_data.id_type_employee).first()
     if not type_emp:
         raise HTTPException(
@@ -49,10 +51,18 @@ def create(db: Session, employee_data: EmployeeCreate):
     db.add(new_employee)
     db.commit()
     db.refresh(new_employee)
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "CREATE",
+        entity = "Employee",
+        entity_id=new_employee.id_employee,
+        description=f"El usuario {current_user.user} creó el usuario {new_employee.first_name}"
+    ) 
     return new_employee
 
-def update(db: Session, employee_id: int, data: EmployeeUpdate):
-    employee = get_by_id(db, employee_id)
+def update(db: Session, employee_id: int, data: EmployeeUpdate, current_user: UserLogin):
+    employee = get_by_id(db, employee_id,current_user)
     
     for field, value in data.dict(exclude_unset=True).items():
         setattr(employee,field,value)
@@ -60,12 +70,35 @@ def update(db: Session, employee_id: int, data: EmployeeUpdate):
     employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(employee)
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "UPDATE",
+        entity = "Employee",
+        entity_id=employee.id_employee,
+        description=f"El usuario {current_user.user} actualizo el usuario {employee.first_name}"
+    ) 
     return employee
 
-def toggle_state(db: Session, employee_id: int):
-    employee = get_by_id(db, employee_id)
+def toggle_state(db: Session, employee_id: int, current_user: UserLogin):
+    employee = get_by_id(db, employee_id,current_user)
     employee.state = not employee.state
     employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(employee)
+    
+    status = ""
+    if employee.state is False:
+        status = "inactivo"
+    else: 
+        status = "activo" 
+        
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "TOGGLE",
+        entity = "Employee",
+        entity_id=employee.id_employee,
+        description=f"El usuario {current_user.user}, {status} el usuario {employee.first_name}"
+    ) 
     return employee 

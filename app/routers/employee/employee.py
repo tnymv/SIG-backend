@@ -42,7 +42,7 @@ async def create_employee(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_employee = create(db, data)
+        new_employee = create(db, data,current_user)
         return success_response(EmployeeResponse.model_validate(new_employee).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el empleado: {e}")
@@ -55,7 +55,7 @@ async def update_employee(
     current_user: UserLogin = Depends(get_current_active_user) 
 ): 
     try:
-        update_employee = update(db, employee_id,data)
+        update_employee = update(db, employee_id,data,current_user)
         return success_response(EmployeeResponse.model_validate(update_employee).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el empleado: {e}")
@@ -67,7 +67,7 @@ async def toggle_type_employee(
     current_user: UserLogin = Depends(get_current_active_user) 
 ): 
     try:
-        toggle_employee = toggle_state(db, employee_id)
+        toggle_employee = toggle_state(db, employee_id,current_user)
         action = "activo" if toggle_employee.state else "inactivo"
         return success_response({
                     "message": f"Se {action} el empleado {toggle_employee.last_name}, correctamente.",

@@ -23,7 +23,7 @@ async def list_rol(
     except Exception as e:
         return error_response(f"Errir al obtener los roels: {e}")
 
-@router.get('/{id_rol}', response_model = RolResponse)
+@router.get('/{id_rol}')
 async def get_rol(
     id_rol : int,
     db: Session = Depends(get_db),
@@ -31,7 +31,7 @@ async def get_rol(
 ):
     try: 
         rol = get_by_id(db, id_rol)
-        return success_response(RolResponse.model_validate(rol).model_dump(mode="json"))
+        return success_response(rol)
     except Exception as e:
         return error_response(f"Error al obtener el rol: {e}")
 
@@ -42,7 +42,7 @@ async def create_rol(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_rol = create(db, data)
+        new_rol = create(db, data,current_user)
         return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el rol")

@@ -46,7 +46,7 @@ async def create_permission(
     current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
-        new_permission = create(db,data)
+        new_permission = create(db,data,current_user)
         return success_response(PermissionsResponse.model_validate(new_permission).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el permiso: {e}")
@@ -59,7 +59,7 @@ async def update_permission(
     current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
-        updated_permission = update(db, permission_id, data)
+        updated_permission = update(db, permission_id, data,current_user)
         return success_response(PermissionsResponse.model_validate(updated_permission).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el permiso {e}")
@@ -71,7 +71,7 @@ async def toggle_permission_state(
     current_user: UserLogin = Depends(get_current_active_user)  
 ):
     try:
-        toggle_permission = toggle_state(db, permission_id)
+        toggle_permission = toggle_state(db, permission_id,current_user)
         action = "activo" if toggle_permission.status else "inactivo"
         return success_response({
                     "message": f"Se {action} el tipo de empleado {toggle_permission.name}, correctamente.",

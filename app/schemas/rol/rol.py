@@ -6,7 +6,7 @@ from typing import List, Optional
 class RolBase(BaseModel):
     name: str
     description: Optional[str] = None
-    status: int
+    status: bool
 
 # Para creación de usuario (entrada)
 class RolCreate(RolBase):

@@ -18,7 +18,7 @@ async def list_interventions(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        interventions = get_all(db, page, limit, current_user)
+        interventions = get_all(db, page, limit)
         return success_response(
             [InterventionsResponse.model_validate(intervention).model_dump(mode="json") for intervention in interventions],
             "Intervenciones obtenidas correctamente"

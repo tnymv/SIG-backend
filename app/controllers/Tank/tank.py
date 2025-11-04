@@ -8,6 +8,7 @@ from sqlalchemy import func
 from app.utils.response import existence_response_dict
 from app.utils.logger import create_log
 from sqlalchemy import func
+from app.schemas.user.user import UserLogin
 
 
 def get_all(db: Session, page: int, limit: int):
@@ -76,7 +77,7 @@ def get_by_id(db: Session, tank_id: int):
     
     return tank_dict
 
-def create(db: Session, tank_data: TankBase):
+def create(db: Session, tank_data: TankBase,current_user: UserLogin):
     existing_tank = db.query(Tank).filter(Tank.name == tank_data.name).first()
     if existing_tank:
         raise HTTPException(
@@ -115,7 +116,14 @@ def create(db: Session, tank_data: TankBase):
             "created_at": new_tank.created_at,
             "updated_at": new_tank.updated_at
         }
-
+        create_log(
+            db,
+            user_id=current_user.id_user,
+            action = "CREATE",
+            entity = "Tank",
+            entity_id=new_tank.name,
+            description=f"El usuario {current_user.user} creó el tanque {new_tank.name}"
+        ) 
         return tank_dict
 
     except Exception as e:
@@ -126,7 +134,7 @@ def create(db: Session, tank_data: TankBase):
         )
 
 
-def update(db: Session, tank_id: int, tank_data: TankUpdate):
+def update(db: Session, tank_id: int, tank_data: TankUpdate,current_user: UserLogin):
     tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
 
     if not tank:
@@ -168,7 +176,14 @@ def update(db: Session, tank_id: int, tank_data: TankUpdate):
             "created_at": tank.created_at,
             "updated_at": tank.updated_at
         }
-
+        create_log(
+            db,
+            user_id=current_user.id_user,
+            action = "UPDATE",
+            entity = "Tank",
+            entity_id=tank.id_tank,
+            description=f"El usuario {current_user.user} actualizo el tanque {tank.name}"
+        ) 
         return tank_dict
 
     except Exception as e:
@@ -179,7 +194,7 @@ def update(db: Session, tank_id: int, tank_data: TankUpdate):
         )
 
 
-def toggle_state(db: Session, tank_id: int):
+def toggle_state(db: Session, tank_id: int,current_user: UserLogin):
     tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
 
     if not tank:
@@ -194,4 +209,17 @@ def toggle_state(db: Session, tank_id: int):
 
     db.commit()
     db.refresh(tank)
+    status = ""
+    if tank.state is False:
+        status = "inactivo"
+    else: 
+        status = "activo" 
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "TOGGLE",
+        entity = "Tank",
+        entity_id=tank.id_tank,
+        description=f"El usuario {current_user.user}, {status} el permiso {tank.name}"
+    ) 
     return tank

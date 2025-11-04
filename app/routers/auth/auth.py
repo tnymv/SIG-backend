@@ -49,10 +49,10 @@ async def read_users_me(
     db: Session = Depends(get_db)
 ):
     
-        create_log(
+    create_log(
         db=db,
         user_id=current_user.id_user,
         action="READ",
         description=f"El usuario {current_user.user} consultó su información personal"
-        )
-        return current_user
+    )
+    return current_user

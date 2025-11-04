@@ -42,7 +42,7 @@ async def create_type_employee(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_type_employee = create(db, data)
+        new_type_employee = create(db, data,current_user)
         return success_response(TypeEmployeeResponse.model_validate(new_type_employee).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el tipo de empleado: {e}")
@@ -55,7 +55,7 @@ async def update_type_employee(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        updated_type_employee = update(db, id_type_employee,data)
+        updated_type_employee = update(db, id_type_employee,data,current_user)
         return success_response(TypeEmployeeResponse.model_validate(updated_type_employee).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el tipo de empleado: {e}")
@@ -67,7 +67,7 @@ async def toggle_type_employee_state(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        toggle_type_employee = toggle_state(db, id_type_employee)
+        toggle_type_employee = toggle_state(db, id_type_employee,current_user)
         action = "activo" if toggle_type_employee.state else "inactivo"
         return success_response({
                     "message": f"Se {action} el tipo de empleado {toggle_type_employee.name}, correctamente.",

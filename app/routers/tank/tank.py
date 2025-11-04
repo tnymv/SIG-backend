@@ -19,9 +19,6 @@ async def list_tanks(
 ): 
     try:
         tanks = get_all(db, page, limit)
-        
-        #Agregar el create log 
-
         return success_response([TankResponse.model_validate(emp).model_dump(mode="json")for emp in tanks])
     except Exception as e:
         return error_response(f"Error al obtener los tanques: {e}")
@@ -45,7 +42,7 @@ async def create_tank(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_tank = create(db, data)
+        new_tank = create(db, data,current_user)
         return success_response(TankResponse.model_validate(new_tank).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear el tanque: {e}")
@@ -58,7 +55,7 @@ async def update_tank(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        tank_updated = update(db, tank_id, data)
+        tank_updated = update(db, tank_id, data,current_user)
         return success_response(TankResponse.model_validate(tank_updated).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el tanque {e}")
@@ -70,7 +67,7 @@ async def toggle_tank_state(
     current_user: UserLogin = Depends(get_current_active_user)
 ): 
     try:
-        toggle_tank = toggle_state(db, tank_id)
+        toggle_tank = toggle_state(db, tank_id,current_user)
         action = "activo" if toggle_tank.state else "inactivo"
         return success_response({
             "message": f"Se {action} el tanque '{toggle_tank.name}', correctamente."
