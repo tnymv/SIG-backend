@@ -121,7 +121,7 @@ def create(db: Session, tank_data: TankBase,current_user: UserLogin):
             user_id=current_user.id_user,
             action = "CREATE",
             entity = "Tank",
-            entity_id=new_tank.name,
+            entity_id=new_tank.id_tank,
             description=f"El usuario {current_user.user} creó el tanque {new_tank.name}"
         ) 
         return tank_dict

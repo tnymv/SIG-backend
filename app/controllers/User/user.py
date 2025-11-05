@@ -62,7 +62,7 @@ def create(db: Session, data: UserCreate,current_user: UserLogin):
     return new_user
 
 def update(db: Session, id_user: int, data: UserUpdate,current_user: UserLogin):
-    user_data = get_by_id(db, id_user, current_user)
+    user_data = get_by_id(db, id_user)
     
     for field, value in data.dict(exclude_unset = True).items():
         setattr(user_data, field, value)
@@ -81,7 +81,7 @@ def update(db: Session, id_user: int, data: UserUpdate,current_user: UserLogin):
     return user_data
 
 def toggle_state(db: Session, id_user: int, current_user: UserLogin):
-    user  = get_by_id(db, id_user, current_user)
+    user  = get_by_id(db, id_user)
     user.status = not user.status
     user.updated_at = datetime.utcnow()
     db.commit()

@@ -45,4 +45,4 @@ async def create_rol(
         new_rol = create(db, data,current_user)
         return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
     except Exception as e:
-        return error_response(f"Error al crear el rol")
+        return error_response(f"Error al crear el rol{e}")

@@ -2,7 +2,7 @@ from fastapi import HTTPException, APIRouter, Depends
 from app.models.connection.connections import Connection
 from typing import List
 from datetime import datetime 
-from app.schemas.connections.connection import ConnectionResponse, ConnectionUpdate, ConnectionCreate
+from app.schemas.connections.connection import ConnectionResponse, ConnectionUpdate, ConnectionCreate,ConnectionBase
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -13,19 +13,96 @@ from app.models.pipes.pipes import Pipes
 from app.utils.logger import create_log
 
 def get_all(db: Session, page: int = 1, limit: int = 5):
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+
     offset = (page - 1) * limit
-    results = db.query(Connection).offset(offset).limit(limit).all()
-    return results
+
+    # 🔹 Asegúrate que el nombre del campo es correcto (coordenates o coordinates)
+    connections = (
+        db.query(
+            Connection,
+            func.ST_X(Connection.coordenates).label('longitude'),
+            func.ST_Y(Connection.coordenates).label('latitude')
+        )
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    if not connections:
+        return success_response(data=[], message="No hay conexiones registradas")
+
+    connection_response = []
+
+    for conn, longitude, latitude in connections:
+        conn_data = {
+            "id_connection": conn.id_connection,
+            "latitude": latitude,
+            "longitude": longitude,
+            "material": conn.material,
+            "diameter_mn": conn.diameter_mn,
+            "pressure_nominal": conn.pressure_nominal,
+            "connection_type": conn.connection_type,
+            "depth_m": conn.depth_m,
+            "installed_date": conn.installed_date,
+            "installed_by": conn.installed_by,
+            "description": conn.description,
+            "state": conn.state,
+            "created_at": conn.created_at,
+            "updated_at": conn.updated_at,
+            "pipes": [
+                {
+                    "id_pipes": pipe.id_pipes,
+                    "material": pipe.material,
+                    "diameter": pipe.diameter
+                }
+                for pipe in conn.pipes
+            ],
+        }
+        # ✅ Agregamos el elemento a la lista
+        connection_response.append(conn_data)
+        
+        return connection_response
 
 
 def get_by_id(db: Session, id_connection: int):
-    connection = db.query(Connection).filter(Connection.id_connection == id_connection).first()
-    if not connection:
+    result = db.query(
+        Connection,
+        func.ST_X(Connection.coordenates).label('longitude'),
+        func.ST_Y(Connection.coordenates).label('latitude')
+    ).filter(Connection.id_connection == id_connection).first()
+
+    if not result:
         raise HTTPException(status_code=404, detail="La conexión no existe")
-    return connection
+
+    conn, longitude, latitude = result
+
+    conn_data = {
+        "id_connection": conn.id_connection,
+        "latitude": latitude,
+        "longitude": longitude,
+        "material": conn.material,
+        "diameter_mn": conn.diameter_mn,
+        "pressure_nominal": conn.pressure_nominal,
+        "connection_type": conn.connection_type,
+        "depth_m": conn.depth_m,
+        "installed_date": conn.installed_date,
+        "installed_by": conn.installed_by,
+        "description": conn.description,
+        "state": conn.state,
+        "created_at": conn.created_at,
+        "updated_at": conn.updated_at,
+        "pipes": [
+            {"id_pipes": p.id_pipes, "material": p.material, "diameter": p.diameter}
+            for p in conn.pipes
+        ]
+    }
+
+    return conn_data
 
 
-def create(db: Session, data,current_user: UserLogin):
+def create(db: Session, data: ConnectionBase,current_user: UserLogin):
     try:
         new_connection = Connection(
             coordenates=f'SRID=4326;POINT({data.longitude} {data.latitude})',
@@ -60,7 +137,25 @@ def create(db: Session, data,current_user: UserLogin):
             entity_id=new_connection.id_connection,
             description=f"El usuario {current_user.user} creó la conexión {new_connection.id_connection}"
         ) 
-        return new_connection
+        response = ConnectionResponse(
+            id_connection=new_connection.id_connection,
+            latitude=data.latitude,
+            longitude=data.longitude,
+            material=new_connection.material,
+            diameter_mn=new_connection.diameter_mn,
+            pressure_nominal=new_connection.pressure_nominal,
+            connection_type=new_connection.connection_type,
+            depth_m=new_connection.depth_m,
+            installed_date=new_connection.installed_date,
+            installed_by=new_connection.installed_by,
+            description=new_connection.description,
+            state=new_connection.state,
+            created_at=new_connection.created_at,
+            updated_at=new_connection.updated_at,
+            pipes=[{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in new_connection.pipes]
+        )
+        
+        return response
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al crear la conexión: {e}")
@@ -72,15 +167,18 @@ def update(db: Session, id_connection: int, data,current_user: UserLogin):
         raise HTTPException(status_code=404, detail="La conexión no existe")
 
     try:
+        # 🔹 Validar coordenadas
         if data.latitude and data.longitude:
-            connection.coordenates = f"SRID=4326;POINT({data.longitude} {data.latitude})"
+            connection.coordinates = f'SRID=4326;POINT({data.longitude} {data.latitude})'
         elif data.latitude or data.longitude:
             raise HTTPException(status_code=400, detail="Ambas coordenadas deben proporcionarse juntas.")
 
+        # 🔹 Actualizar campos básicos
         for field, value in data.dict(exclude_unset=True).items():
             if field not in ["latitude", "longitude", "pipe_ids"]:
                 setattr(connection, field, value)
 
+        # 🔹 Actualizar tuberías si se enviaron
         if data.pipe_ids:
             pipes = db.query(Pipes).filter(Pipes.id_pipes.in_(data.pipe_ids)).all()
             if len(pipes) != len(data.pipe_ids):
@@ -90,15 +188,45 @@ def update(db: Session, id_connection: int, data,current_user: UserLogin):
         connection.updated_at = datetime.now()
         db.commit()
         db.refresh(connection)
+
+        # 🔹 Registrar log
         create_log(
             db,
             user_id=current_user.id_user,
-            action = "UPDATE",
-            entity = "Permission",
+            action="UPDATE",
+            entity="Connection",
             entity_id=connection.id_connection,
-            description=f"El usuario {current_user.user} actualizo la conexión {connection.id_connection}"
-        ) 
-        return connection
+            description=f"El usuario {current_user.user} actualizó la conexión {connection.id_connection}"
+        )
+
+        # 🔹 Obtener coordenadas reales desde PostGIS
+        longitude = db.scalar(func.ST_X(connection.coordinates))
+        latitude = db.scalar(func.ST_Y(connection.coordinates))
+
+        # 🔹 Estructurar respuesta
+        response = {
+            "id_connection": connection.id_connection,
+            "latitude": latitude,
+            "longitude": longitude,
+            "material": connection.material,
+            "diameter_mn": connection.diameter_mn,
+            "pressure_nominal": connection.pressure_nominal,
+            "connection_type": connection.connection_type,
+            "depth_m": connection.depth_m,
+            "installed_date": connection.installed_date,
+            "installed_by": connection.installed_by,
+            "description": connection.description,
+            "state": connection.state,
+            "created_at": connection.created_at,
+            "updated_at": connection.updated_at,
+            "pipes": [
+                {"id_pipes": p.id_pipes, "material": p.material, "diameter": p.diameter}
+                for p in connection.pipes
+            ]
+        }
+
+        return response
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar la conexión: {e}")

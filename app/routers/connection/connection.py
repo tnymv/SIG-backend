@@ -42,7 +42,7 @@ async def create_connection(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        new_connection = create(db, data, current_user.user,current_user)
+        new_connection = create(db, data, current_user)
         return success_response(ConnectionResponse.model_validate(new_connection).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al crear la conexión: {e}")

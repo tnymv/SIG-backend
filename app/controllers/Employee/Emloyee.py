@@ -62,7 +62,7 @@ def create(db: Session, employee_data: EmployeeCreate, current_user: UserLogin):
     return new_employee
 
 def update(db: Session, employee_id: int, data: EmployeeUpdate, current_user: UserLogin):
-    employee = get_by_id(db, employee_id,current_user)
+    employee = get_by_id(db, employee_id)
     
     for field, value in data.dict(exclude_unset=True).items():
         setattr(employee,field,value)
@@ -81,7 +81,7 @@ def update(db: Session, employee_id: int, data: EmployeeUpdate, current_user: Us
     return employee
 
 def toggle_state(db: Session, employee_id: int, current_user: UserLogin):
-    employee = get_by_id(db, employee_id,current_user)
+    employee = get_by_id(db, employee_id)
     employee.state = not employee.state
     employee.updated_at = datetime.utcnow()
     db.commit()
