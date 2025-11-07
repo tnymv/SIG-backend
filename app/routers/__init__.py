@@ -10,3 +10,4 @@ from app.routers.connection.connection import router as connection_router
 from app.routers.files.files import router as files_router
 from app.routers.type_employee.type_employee import router as type_employee_router
 from app.routers.interventions.intervention import router as interventions_router
+from app.routers.map.map import router as map_router
