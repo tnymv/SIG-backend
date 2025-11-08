@@ -12,7 +12,7 @@ from app.schemas.user.user import UserLogin
 from app.models.pipes.pipes import Pipes
 from app.utils.logger import create_log
 
-def get_all(db: Session, page: int = 1, limit: int = 5):
+def get_all(db: Session, page: int = 1, limit: int = 10000):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
@@ -62,8 +62,9 @@ def get_all(db: Session, page: int = 1, limit: int = 5):
         }
         # ✅ Agregamos el elemento a la lista
         connection_response.append(conn_data)
-        
-        return connection_response
+    
+    # ✅ IMPORTANTE: El return debe estar FUERA del loop
+    return connection_response
 
 
 def get_by_id(db: Session, id_connection: int):

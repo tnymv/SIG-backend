@@ -13,7 +13,7 @@ router = APIRouter(prefix='/type_employee', tags=['Type Employee'])
 @router.get('', response_model = List[TypeEmployeeResponse])
 async def list_type_employees(
     page: int = 1,
-    limit: int = 5,
+    limit: int = 10000,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):

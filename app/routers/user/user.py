@@ -13,7 +13,7 @@ router = APIRouter(prefix='/user', tags=['User'])
 @router.get('',response_model = List[UserResponse])
 async def list_user(
     page: int = 1,
-    limit: int = 5, 
+    limit: int = 10000, 
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
