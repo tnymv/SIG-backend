@@ -17,8 +17,9 @@ def get_all(db: Session, page: int = 1, limit: int = 10000):
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
+    query = db.query(Connection)
+    total = query.count()
 
-    # 🔹 Asegúrate que el nombre del campo es correcto (coordenates o coordinates)
     connections = (
         db.query(
             Connection,
@@ -31,7 +32,10 @@ def get_all(db: Session, page: int = 1, limit: int = 10000):
     )
 
     if not connections:
-        return success_response(data=[], message="No hay conexiones registradas")
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "No se encontraron conexiones")
+        )
 
     connection_response = []
 
@@ -60,11 +64,9 @@ def get_all(db: Session, page: int = 1, limit: int = 10000):
                 for pipe in conn.pipes
             ],
         }
-        # ✅ Agregamos el elemento a la lista
         connection_response.append(conn_data)
     
-    # ✅ IMPORTANTE: El return debe estar FUERA del loop
-    return connection_response
+    return connection_response, total
 
 
 def get_by_id(db: Session, id_connection: int):

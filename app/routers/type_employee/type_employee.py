@@ -10,7 +10,7 @@ from typing import List
 
 router = APIRouter(prefix='/type_employee', tags=['Type Employee'])
 
-@router.get('', response_model = List[TypeEmployeeResponse])
+@router.get('', response_model=List[TypeEmployeeResponse])
 async def list_type_employees(
     page: int = 1,
     limit: int = 10000,
@@ -18,8 +18,24 @@ async def list_type_employees(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        type_employee = get_all(db, page, limit)
-        return success_response([TypeEmployeeResponse.model_validate(emp).model_dump(mode="json") for emp in type_employee])
+        type_employees, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [TypeEmployeeResponse.model_validate(emp).model_dump(mode="json") for emp in type_employees]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener los tipos de empleados: {e}")
 

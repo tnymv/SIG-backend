@@ -10,7 +10,7 @@ from typing import List
 
 router = APIRouter(prefix='/tank', tags=['Tank'])
 
-@router.get('', response_model= List[TankResponse])
+@router.get('', response_model=List[TankResponse])
 async def list_tanks(
     page: int = 1,
     limit: int = 5,
@@ -18,10 +18,27 @@ async def list_tanks(
     current_user: UserLogin = Depends(get_current_active_user)
 ): 
     try:
-        tanks = get_all(db, page, limit)
-        return success_response([TankResponse.model_validate(emp).model_dump(mode="json")for emp in tanks])
+        tanks, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [TankResponse.model_validate(emp).model_dump(mode="json") for emp in tanks]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener los tanques: {e}")
+
 
 @router.get('/{tank_id}', response_model = TankResponse)
 async def get_tank(

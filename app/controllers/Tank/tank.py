@@ -16,6 +16,10 @@ def get_all(db: Session, page: int, limit: int):
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
+    
+    query = db.query(Tank)
+    total = query.count()
+    
     tanks = db.query(
         Tank,
         func.ST_X(Tank.coordinates).label('longitude'),
@@ -44,7 +48,7 @@ def get_all(db: Session, page: int, limit: int):
         for t, lon, lat in tanks
     ]
 
-    return tank_list
+    return tank_list, total
 
 
 def get_by_id(db: Session, tank_id: int):

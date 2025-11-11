@@ -21,7 +21,18 @@ def get_all(db: Session, page: int, limit: int):
     
     offset = (page - 1) * limit
     interventions = db.query(Interventions).offset(offset).limit(limit).all()
-    return interventions
+    
+    query = db.query(Interventions)
+    total = query.count()
+    
+    if not interventions:
+        raise HTTPException(
+            status_code = 404, 
+            detail=existence_response_dict(False, "No hay intervenciones registradas"),
+            headers={"X-Error": "No hay intervenciones registradas"}
+        )
+    
+    return interventions, total
 
 def get_by_id(db: Session, intervention_id: int):
     intervention = db.query(Interventions).filter(Interventions.id_interventions == intervention_id).first()

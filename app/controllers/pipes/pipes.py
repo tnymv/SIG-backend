@@ -21,6 +21,9 @@ def get_all(db: Session, page: int, limit: int):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
+    query = db.query(Pipes)
+    total = query.count()
+    
     pipes = db.query(
         Pipes,
         func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")
@@ -46,7 +49,7 @@ def get_all(db: Session, page: int, limit: int):
             "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks]
         })
 
-    return result
+    return result, total
 
 def get_by_id(db: Session, pipe_id: int):
     result = db.query(

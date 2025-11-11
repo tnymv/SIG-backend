@@ -10,9 +10,14 @@ from datetime import datetime
 
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
+    
+    data_employee = db.query(Employee).offset(offset).limit(limit).all()
+    query = db.query(Employee)
+    total = query.count()
+    
     if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")   
-    return db.query(Employee).offset(offset).limit(limit).all()
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    return data_employee, total
 
 def get_by_id(db: Session, Employee_id: int):
     employee = db.query(Employee).filter(Employee.id_employee == Employee_id).first()

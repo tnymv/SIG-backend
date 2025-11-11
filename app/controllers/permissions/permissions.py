@@ -13,9 +13,14 @@ from app.schemas.user.user import UserLogin
 
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
+    
+    data_permission = db.query(Permissions).offset(offset).limit(limit).all()
+    query = db.query(Permissions)
+    total = query.count()
+    
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")   
-    return db.query(Permissions).offset(offset).limit(limit).all()
+    return data_permission, total
 
 def get_by_id(db: Session, permissions_id: int):
     permissions = db.query(Permissions).filter(Permissions.id_permissions == permissions_id).first()

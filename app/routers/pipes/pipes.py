@@ -10,7 +10,7 @@ from typing import List
 
 router = APIRouter(prefix="/pipes", tags=["Pipes"])
 
-@router.get("", response_model=List[PipesResponse])
+@router.get('', response_model=List[PipesResponse])
 async def list_pipes(
     page: int = 1,
     limit: int = 10,
@@ -18,10 +18,27 @@ async def list_pipes(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        pipes = get_all(db, page, limit)
-        return success_response([PipesResponse.model_validate(p).model_dump(mode="json") for p in pipes])
+        pipes, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [PipesResponse.model_validate(p).model_dump(mode="json") for p in pipes]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener las tuberías: {e}")
+
 
 @router.get("/{id_pipe}", response_model=PipesResponse)
 async def get_pipe(
