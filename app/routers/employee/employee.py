@@ -10,18 +10,35 @@ from typing import List
 
 router = APIRouter(prefix='/employee', tags=['Employee'])
 
-@router.get('',response_model=List[EmployeeResponse])
+@router.get('', response_model=List[EmployeeResponse])
 async def list_employee(
     page: int = 1,
-    limit: int = 10000,
+    limit: int = 10,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        employee = get_all(db, page, limit)
-        return success_response([EmployeeResponse.model_validate(emp).model_dump(mode="json") for emp in employee])
+        employees, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [EmployeeResponse.model_validate(emp).model_dump(mode="json") for emp in employees]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener los empleados: {e}")
+
 
 @router.get('/{employee_id}', response_model = EmployeeResponse)
 async def get_employee(

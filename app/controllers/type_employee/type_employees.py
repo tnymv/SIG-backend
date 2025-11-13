@@ -9,9 +9,14 @@ from app.utils.logger import create_log
 
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
+    
+    type_employee_q = db.query(TypeEmployee).offset(offset).limit(limit).all()
+    query = db.query(TypeEmployee)
+    total = query.count()
+    
     if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")   
-    return db.query(TypeEmployee).offset(offset).limit(limit).all()
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    return type_employee_q, total
 
 def get_by_id(db: Session, id_type_employee: int):
     type_employee = db.query(TypeEmployee).filter(TypeEmployee.id_type_employee == id_type_employee).first()

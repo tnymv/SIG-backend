@@ -13,6 +13,10 @@ def get_all(db: Session, page: int, limit: int):
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
+    
+    query = db.query(Rol)
+    total = query.count() 
+    
     roles = db.query(Rol).offset(offset).limit(limit).all()
 
     if not roles:
@@ -21,7 +25,7 @@ def get_all(db: Session, page: int, limit: int):
             detail=existence_response_dict(False, "No hay roles disponibles"),
             headers={"X-Error": "No hay roles disponibles"}
         )
-    return roles
+    return roles, total
 
 def get_by_id(db: Session, rol_id: int):
     rol = db.query(Rol).filter(Rol.id_rol == rol_id).first()
@@ -40,7 +44,6 @@ def get_by_id(db: Session, rol_id: int):
         nombre_key = permiso.name.lower().replace(" ", "_")
         permisos_dict[nombre_key] = False
 
-    # 3️⃣ Marcar True solo los que el rol realmente tiene
     for permiso in rol.permissions:
         nombre_key = permiso.name.lower().replace(" ", "_")
         permisos_dict[nombre_key] = True
@@ -62,7 +65,6 @@ def create(db: Session, data: RolCreate,current_user: UserLogin):
             headers={"X-error": "El rol ya existe"}
         )
 
-    # Crear el nuevo rol
     new_rol = Rol(
         name=data.name,
         description=data.description,

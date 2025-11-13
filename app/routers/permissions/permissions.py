@@ -14,7 +14,7 @@ from app.controllers.permissions.permissions import get_all, get_by_id, create, 
 
 router = APIRouter(prefix='/premissions', tags=['Permissions'])
 
-@router.get('', response_model = List[PermissionsResponse])
+@router.get('', response_model=List[PermissionsResponse])
 async def list_permission(
     page: int = 1,
     limit: int = 10000,
@@ -22,10 +22,27 @@ async def list_permission(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        permissions = get_all(db, page, limit)
-        return success_response([PermissionsResponse.model_validate(emp).model_dump(mode="json") for emp in permissions])
+        permissions, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [PermissionsResponse.model_validate(emp).model_dump(mode="json") for emp in permissions]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener los permisos: {e}")
+
 
 @router.get('/{permission_id}', response_model=PermissionsResponse)
 async def get_permissions(

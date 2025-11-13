@@ -10,7 +10,7 @@ class PipesBase(BaseModel):
     status: bool = True
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
-    observations: str
+    observations: Optional[str] = None
     coordinates: List[Tuple[float, float]]
     tank_ids: Optional[List[int]] = [] 
 
@@ -26,7 +26,7 @@ class PipesResponse(BaseModel):
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
     coordinates: List[Tuple[float, float]]
-    observations: str
+    observations: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     tanks: List[TankSimple] = []

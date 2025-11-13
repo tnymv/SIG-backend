@@ -10,7 +10,7 @@ from typing import List
 
 router = APIRouter(prefix='/user', tags=['User'])
 
-@router.get('',response_model = List[UserResponse])
+@router.get('', response_model=List[UserResponse])
 async def list_user(
     page: int = 1,
     limit: int = 10000, 
@@ -18,10 +18,27 @@ async def list_user(
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try: 
-        user = get_all(db, page, limit)
-        return success_response([UserResponse.model_validate(emp).model_dump(mode="json") for emp in user])
+        users, total = get_all(db, page, limit)
+        total_pages = (total + limit - 1) // limit
+        next_page = page + 1 if page < total_pages else None
+        prev_page = page - 1 if page > 1 else None
+
+        data = [UserResponse.model_validate(emp).model_dump(mode="json") for emp in users]
+
+        return success_response({
+            "items": data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_items": total,
+                "total_pages": total_pages,
+                "next_page": next_page,
+                "prev_page": prev_page
+            }
+        })
     except Exception as e:
         return error_response(f"Error al obtener los usuarios: {e}")
+
 
 @router.get('/{id_user}', response_model = UserResponse)
 async def get_user(

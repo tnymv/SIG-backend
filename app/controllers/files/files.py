@@ -13,9 +13,13 @@ from app.schemas.user.user import UserLogin
 
 def get_all(db: Session, page: int, limit: int):
     offset = (page - 1) * limit
+    
+    data_files = db.query(Files).offset(offset).limit(limit).all()
+    query = db.query(Files)
+    total = query.count()
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="Página y límite deben ser mayores que 0")
-    return db.query(Files).offset(offset).limit(limit).all()
+    return data_files, total
 
 
 def get_by_id(db: Session, file_id: int):
