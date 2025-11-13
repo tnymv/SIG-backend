@@ -1,32 +1,46 @@
 from fastapi import HTTPException, APIRouter
 from app.models.tanks.tanks import Tank
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.tanks.tanks import TankBase, TankResponse, TankUpdate
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.utils.response import existence_response_dict
 from app.utils.logger import create_log
-from sqlalchemy import func
 from app.schemas.user.user import UserLogin
 
 
-def get_all(db: Session, page: int, limit: int):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
     
-    query = db.query(Tank)
-    total = query.count()
-    
-    tanks = db.query(
+    # Construir query base con coordenadas
+    query = db.query(
         Tank,
         func.ST_X(Tank.coordinates).label('longitude'),
         func.ST_Y(Tank.coordinates).label('latitude')
-    ).offset(offset).limit(limit).all()
+    )
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Tank.name).like(search_term),
+                func.lower(func.coalesce(Tank.connections, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    tanks = query.offset(offset).limit(limit).all()
 
-    if not tanks:
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not tanks and not search:
         raise HTTPException(
             status_code=404,
             detail=existence_response_dict(False, "No hay tanques disponibles"),

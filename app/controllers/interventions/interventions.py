@@ -4,28 +4,42 @@ from app.models.tanks.tanks import Tank
 from app.models.pipes.pipes import Pipes
 from app.models.connection.connections import Connection
 from app.models.intervention_entities.intervention_entities import Intervention_entities
-from typing import List
+from typing import List, Optional
 from datetime import datetime 
 from app.schemas.interventions.interventions import InterventionsBase, InterventionsResponse, InterventionsUpdate, InterventionsCreate
 from app.db.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 
-def get_all(db: Session, page: int, limit: int):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
     
     offset = (page - 1) * limit
-    interventions = db.query(Interventions).offset(offset).limit(limit).all()
     
+    # Construir query base
     query = db.query(Interventions)
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            func.lower(Interventions.description).like(search_term)
+        )
+    
+    # Contar total antes de paginar
     total = query.count()
     
-    if not interventions:
+    # Aplicar paginación
+    interventions = query.offset(offset).limit(limit).all()
+    
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not interventions and not search:
         raise HTTPException(
             status_code = 404, 
             detail=existence_response_dict(False, "No hay intervenciones registradas"),

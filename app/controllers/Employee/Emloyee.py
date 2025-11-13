@@ -5,18 +5,44 @@ from app.models.employee.employee import Employee
 from app.schemas.user.user import UserLogin
 from app.utils.logger import create_log
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from fastapi import HTTPException
 from datetime import datetime
+from typing import Optional
 
-def get_all(db: Session, page: int, limit: int):
-    offset = (page - 1) * limit
-    
-    data_employee = db.query(Employee).offset(offset).limit(limit).all()
-    query = db.query(Employee)
-    total = query.count()
-    
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    
+    offset = (page - 1) * limit
+    
+    # Construir query base
+    query = db.query(Employee)
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Employee.first_name).like(search_term),
+                func.lower(Employee.last_name).like(search_term),
+                func.lower(func.coalesce(Employee.phone_number, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    data_employee = query.offset(offset).limit(limit).all()
+    
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not data_employee and not search:
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "No hay empleados disponibles"),
+            headers={"X-Error": "No hay empleados disponibles"}
+        )
     return data_employee, total
 
 def get_by_id(db: Session, Employee_id: int):

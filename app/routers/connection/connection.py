@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.controllers.auth.auth_controller import get_current_active_user
@@ -6,20 +6,21 @@ from app.schemas.user.user import UserLogin
 from app.schemas.connections.connection import ConnectionCreate, ConnectionUpdate, ConnectionResponse
 from app.controllers.Connection.connections import get_all, get_by_id, create, update, toggle_state
 from app.utils.response import success_response, error_response
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/connections", tags=["Connections"])
 
 @router.get('', response_model=List[ConnectionResponse])
 async def list_connections(
-    page: int = 1,
-    limit: int = 10,
+    page: int = Query(1, ge=1, description="Número de página"),
+    limit: int = Query(10, ge=1, le=100, description="Límite de resultados por página"),
+    search: Optional[str] = Query(None, description="Término de búsqueda para filtrar por material, tipo, presión, instalador o descripción"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        connections, total = get_all(db, page, limit)
-        total_pages = (total + limit - 1) 
+        connections, total = get_all(db, page, limit, search)
+        total_pages = (total + limit - 1) // limit
         next_page = page + 1 if page < total_pages else None
         prev_page = page - 1 if page > 1 else None
 
@@ -36,6 +37,8 @@ async def list_connections(
                 "prev_page": prev_page
             }
         })
+    except HTTPException:
+        raise
     except Exception as e:
         return error_response(f"Error al obtener las conexiones: {e}")
 

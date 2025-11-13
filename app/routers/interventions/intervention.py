@@ -3,22 +3,23 @@ from app.schemas.interventions.interventions import InterventionsResponse, Inter
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.response import success_response, error_response
 from app.schemas.user.user import UserLogin
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix='/interventions', tags=['Interventions'])
 
 @router.get('', response_model=List[InterventionsResponse])
 async def list_interventions(
-    page: int = 1,
-    limit: int = 10000,
+    page: int = Query(1, ge=1, description="Número de página"),
+    limit: int = Query(10000, ge=1, le=10000, description="Límite de resultados por página"),
+    search: Optional[str] = Query(None, description="Término de búsqueda para filtrar por descripción"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        interventions, total = get_all(db, page, limit)
+        interventions, total = get_all(db, page, limit, search)
         total_pages = (total + limit - 1) // limit
         next_page = page + 1 if page < total_pages else None
         prev_page = page - 1 if page > 1 else None
@@ -36,6 +37,8 @@ async def list_interventions(
                 "prev_page": prev_page
             }
         }, "Intervenciones obtenidas correctamente")
+    except HTTPException:
+        raise
     except Exception as e:
         return error_response(f"Error al obtener las intervenciones: {e}")
 

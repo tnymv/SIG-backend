@@ -1,6 +1,6 @@
-from fastapi import HTTPException, APIRouter
+from fastapi import HTTPException, APIRouter, Query
 from app.models.permissions.permissions import Permissions
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.permissions.permissions import PermissionsBase, PermissionsResponse, PermissionsCreate, PermissionsUpdate
 from app.db.database import get_db
@@ -16,13 +16,14 @@ router = APIRouter(prefix='/premissions', tags=['Permissions'])
 
 @router.get('', response_model=List[PermissionsResponse])
 async def list_permission(
-    page: int = 1,
-    limit: int = 10000,
+    page: int = Query(1, ge=1, description="Número de página"),
+    limit: int = Query(10000, ge=1, le=10000, description="Límite de resultados por página"),
+    search: Optional[str] = Query(None, description="Término de búsqueda para filtrar por nombre o descripción"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        permissions, total = get_all(db, page, limit)
+        permissions, total = get_all(db, page, limit, search)
         total_pages = (total + limit - 1) // limit
         next_page = page + 1 if page < total_pages else None
         prev_page = page - 1 if page > 1 else None
@@ -40,6 +41,8 @@ async def list_permission(
                 "prev_page": prev_page
             }
         })
+    except HTTPException:
+        raise
     except Exception as e:
         return error_response(f"Error al obtener los permisos: {e}")
 

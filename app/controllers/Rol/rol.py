@@ -5,21 +5,39 @@ from app.schemas.rol.rol import RolCreate
 from app.utils.logger import create_log
 from app.models.rol.rol import Rol
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from fastapi import HTTPException
 from datetime import datetime
+from typing import Optional
 
-def get_all(db: Session, page: int, limit: int):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
     
+    # Construir query base
     query = db.query(Rol)
-    total = query.count() 
     
-    roles = db.query(Rol).offset(offset).limit(limit).all()
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        # Buscar en name y description (coalesce maneja NULL como cadena vacía)
+        query = query.filter(
+            or_(
+                func.lower(Rol.name).like(search_term),
+                func.lower(func.coalesce(Rol.description, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    roles = query.offset(offset).limit(limit).all()
 
-    if not roles:
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not roles and not search:
         raise HTTPException(
             status_code=404,
             detail=existence_response_dict(False, "No hay roles disponibles"),

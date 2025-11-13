@@ -1,25 +1,49 @@
 from fastapi import HTTPException, APIRouter
 from app.models.permissions.permissions import Permissions
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.permissions.permissions import PermissionsBase, PermissionsResponse, PermissionsCreate, PermissionsUpdate
 from app.db.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from fastapi import Depends
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 
-def get_all(db: Session, page: int, limit: int):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    
     offset = (page - 1) * limit
     
-    data_permission = db.query(Permissions).offset(offset).limit(limit).all()
+    # Construir query base
     query = db.query(Permissions)
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Permissions.name).like(search_term),
+                func.lower(func.coalesce(Permissions.description, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
     total = query.count()
     
-    if page < 1 or limit < 1:
-        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")   
+    # Aplicar paginación
+    data_permission = query.offset(offset).limit(limit).all()
+    
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not data_permission and not search:
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "No hay permisos disponibles"),
+            headers={"X-Error": "No hay permisos disponibles"}
+        )
     return data_permission, total
 
 def get_by_id(db: Session, permissions_id: int):

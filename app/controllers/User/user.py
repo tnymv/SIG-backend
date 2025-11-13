@@ -1,26 +1,49 @@
 from fastapi import HTTPException, APIRouter,Depends
 from app.models.user.user import Username
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.user.user import UserBase, UserResponse, UserUpdate, UserCreate
 from app.db.database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.utils.auth import get_password_hash
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.logger import create_log
 from app.schemas.user.user import UserLogin
         
-def get_all(db: Session, page: int, limit: int):
-    offset = (page - 1) * limit
-    
-    query = db.query(Username)
-    total = query.count()
-    
-    user = db.query(Username).offset(offset).limit(limit).all()
-    
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    
+    offset = (page - 1) * limit
+    
+    # Construir query base
+    query = db.query(Username)
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Username.user).like(search_term),
+                func.lower(func.coalesce(Username.email, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    user = query.offset(offset).limit(limit).all()
+    
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not user and not search:
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "No hay usuarios disponibles"),
+            headers={"X-Error": "No hay usuarios disponibles"}
+        )
     return user, total
 
 def get_by_id(db: Session, id_user: int):

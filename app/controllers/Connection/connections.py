@@ -1,37 +1,63 @@
 from fastapi import HTTPException, APIRouter, Depends
 from app.models.connection.connections import Connection
-from typing import List
+from typing import List, Optional
 from datetime import datetime 
 from app.schemas.connections.connection import ConnectionResponse, ConnectionUpdate, ConnectionCreate,ConnectionBase
 from app.db.database import get_db
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.utils.response import success_response, error_response, existence_response_dict
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 from app.models.pipes.pipes import Pipes
 from app.utils.logger import create_log
 
-def get_all(db: Session, page: int = 1, limit: int = 10000):
+def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
     offset = (page - 1) * limit
-    query = db.query(Connection)
-    total = query.count()
-
-    connections = (
-        db.query(
-            Connection,
-            func.ST_X(Connection.coordenates).label('longitude'),
-            func.ST_Y(Connection.coordenates).label('latitude')
-        )
-        .offset(offset)
-        .limit(limit)
-        .all()
+    
+    # Construir query base con coordenadas
+    query = db.query(
+        Connection,
+        func.ST_X(Connection.coordenates).label('longitude'),
+        func.ST_Y(Connection.coordenates).label('latitude')
     )
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(func.coalesce(Connection.material, '')).like(search_term),
+                func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
+                func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
+                func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
+                func.lower(func.coalesce(Connection.description, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar (necesitamos una query separada para el count)
+    count_query = db.query(Connection)
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        count_query = count_query.filter(
+            or_(
+                func.lower(func.coalesce(Connection.material, '')).like(search_term),
+                func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
+                func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
+                func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
+                func.lower(func.coalesce(Connection.description, '')).like(search_term)
+            )
+        )
+    total = count_query.count()
+    
+    # Aplicar paginación
+    connections = query.offset(offset).limit(limit).all()
 
-    if not connections:
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not connections and not search:
         raise HTTPException(
             status_code=404,
             detail=existence_response_dict(False, "No se encontraron conexiones")

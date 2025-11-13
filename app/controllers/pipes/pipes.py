@@ -1,7 +1,7 @@
 from fastapi import HTTPException, APIRouter
 from app.models.pipes.pipes import Pipes
 from app.models.tanks.tanks import Tank
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.pipes.pipes import PipesBase, PipesResponse,PipesResponseCreate, PipesUpdate, TankSimple
 from app.db.database import get_db
@@ -12,24 +12,49 @@ from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_
 import json
-from sqlalchemy import func
 from geoalchemy2 import WKTElement
 
-def get_all(db: Session, page: int, limit: int):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
-    query = db.query(Pipes)
-    total = query.count()
+    offset = (page - 1) * limit
     
-    pipes = db.query(
+    # Construir query base con coordenadas
+    query = db.query(
         Pipes,
         func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")
-    ).options(joinedload(Pipes.tanks)).offset((page - 1) * limit).limit(limit).all()
+    ).options(joinedload(Pipes.tanks))
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Pipes.material).like(search_term),
+                func.lower(func.coalesce(Pipes.observations, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar (necesitamos una query separada para el count)
+    count_query = db.query(Pipes)
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        count_query = count_query.filter(
+            or_(
+                func.lower(Pipes.material).like(search_term),
+                func.lower(func.coalesce(Pipes.observations, '')).like(search_term)
+            )
+        )
+    total = count_query.count()
+    
+    # Aplicar paginación
+    pipes = query.offset(offset).limit(limit).all()
 
-    if not pipes:
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not pipes and not search:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "No hay tuberías registradas"))
 
     result = []

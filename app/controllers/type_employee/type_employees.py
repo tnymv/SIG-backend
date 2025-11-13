@@ -3,19 +3,44 @@ from app.models.type_employee.type_employees import TypeEmployee
 from app.utils.response import existence_response_dict
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from datetime import datetime 
+from typing import Optional
 from app.schemas.user.user import UserLogin
 from app.utils.logger import create_log
 
-def get_all(db: Session, page: int, limit: int):
-    offset = (page - 1) * limit
-    
-    type_employee_q = db.query(TypeEmployee).offset(offset).limit(limit).all()
-    query = db.query(TypeEmployee)
-    total = query.count()
-    
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+    
+    offset = (page - 1) * limit
+    
+    # Construir query base
+    query = db.query(TypeEmployee)
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(TypeEmployee.name).like(search_term),
+                func.lower(func.coalesce(TypeEmployee.description, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    type_employee_q = query.offset(offset).limit(limit).all()
+    
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not type_employee_q and not search:
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "No hay tipos de empleado disponibles"),
+            headers={"X-Error": "No hay tipos de empleado disponibles"}
+        )
     return type_employee_q, total
 
 def get_by_id(db: Session, id_type_employee: int):
