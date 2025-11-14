@@ -10,5 +10,5 @@ from .pipes.pipes import Pipes
 from .files.files import Files
 from .type_employee.type_employees import TypeEmployee
 from .interventions.interventions import Interventions
-from .data_upload.data_upload import Data_upload
+# from .data_upload.data_upload import Data_upload
 from .intervention_entities.intervention_entities import Intervention_entities

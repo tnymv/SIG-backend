@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from typing import List, Optional
+from fastapi import HTTPException
 
 router = APIRouter(prefix='/rol', tags=['Rol'])
 
