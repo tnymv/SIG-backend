@@ -190,6 +190,12 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
         db.commit()
         db.refresh(pipe)
 
+        # Obtener coordenadas actualizadas en formato GeoJSON
+        geometry = db.query(func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")) \
+            .filter(Pipes.id_pipes == pipe.id_pipes) \
+            .scalar()
+        coords = json.loads(geometry)["coordinates"] if geometry else []
+
         create_log(
             db,
             user_id=current_user.id_user,
@@ -206,6 +212,7 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
             "status": pipe.status,
             "size": pipe.size,
             "installation_date": pipe.installation_date,
+            "coordinates": coords,
             "observations": pipe.observations,
             "created_at": pipe.created_at,
             "updated_at": pipe.updated_at,
