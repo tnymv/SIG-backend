@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional, List, Tuple
 from decimal import Decimal
@@ -12,7 +12,16 @@ class PipesBase(BaseModel):
     installation_date:datetime
     observations: Optional[str] = None
     coordinates: List[Tuple[float, float]]
-    tank_ids: Optional[List[int]] = [] 
+    tank_ids: Optional[List[int]] = []
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
+
+    @field_validator('coordinates')
+    @classmethod
+    def validate_coordinates(cls, v):
+        if len(v) != 2:
+            raise ValueError('Las coordenadas deben tener exactamente 2 puntos (inicio y fin)')
+        return v 
 
 class TankSimple(BaseModel):
     id_tank: int
@@ -30,6 +39,8 @@ class PipesResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     tanks: List[TankSimple] = []
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -43,6 +54,15 @@ class PipesUpdate(BaseModel):
     status: Optional[bool] = None
     size: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
     installation_date: Optional[datetime] = None
-    coordinates: Optional[List[Tuple[float, float]]]
+    coordinates: Optional[List[Tuple[float, float]]] = None
     observations: Optional[str] = None
     tank_ids: Optional[List[int]] = None
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
+
+    @field_validator('coordinates')
+    @classmethod
+    def validate_coordinates(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError('Las coordenadas deben tener exactamente 2 puntos (inicio y fin)')
+        return v
