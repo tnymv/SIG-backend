@@ -18,14 +18,12 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
 
     offset = (page - 1) * limit
     
-    # Construir query base con coordenadas
     query = db.query(
         Connection,
         func.ST_X(Connection.coordenates).label('longitude'),
         func.ST_Y(Connection.coordenates).label('latitude')
     )
     
-    # Aplicar búsqueda si se proporciona
     if search and search.strip():
         search_term = f"%{search.strip().lower()}%"
         query = query.filter(
@@ -37,8 +35,7 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
                 func.lower(func.coalesce(Connection.description, '')).like(search_term)
             )
         )
-    
-    # Contar total antes de paginar (necesitamos una query separada para el count)
+
     count_query = db.query(Connection)
     if search and search.strip():
         search_term = f"%{search.strip().lower()}%"
@@ -53,10 +50,8 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
         )
     total = count_query.count()
     
-    # Aplicar paginación
     connections = query.offset(offset).limit(limit).all()
 
-    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not connections and not search:
         raise HTTPException(
             status_code=404,
@@ -190,24 +185,21 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
         raise HTTPException(status_code=500, detail=f"Error al crear la conexión: {e}")
 
 
-def update(db: Session, id_connection: int, data,current_user: UserLogin):
+def update(db: Session, id_connection: int, data, current_user: UserLogin):
     connection = db.query(Connection).filter(Connection.id_connection == id_connection).first()
     if not connection:
         raise HTTPException(status_code=404, detail="La conexión no existe")
 
     try:
-        # 🔹 Validar coordenadas
-        if data.latitude and data.longitude:
-            connection.coordinates = f'SRID=4326;POINT({data.longitude} {data.latitude})'
-        elif data.latitude or data.longitude:
+        if data.latitude is not None and data.longitude is not None:
+            connection.coordenates = f'SRID=4326;POINT({data.longitude} {data.latitude})'
+        elif data.latitude is not None or data.longitude is not None:
             raise HTTPException(status_code=400, detail="Ambas coordenadas deben proporcionarse juntas.")
 
-        # 🔹 Actualizar campos básicos
         for field, value in data.dict(exclude_unset=True).items():
             if field not in ["latitude", "longitude", "pipe_ids"]:
                 setattr(connection, field, value)
 
-        # 🔹 Actualizar tuberías si se enviaron
         if data.pipe_ids:
             pipes = db.query(Pipes).filter(Pipes.id_pipes.in_(data.pipe_ids)).all()
             if len(pipes) != len(data.pipe_ids):
@@ -218,7 +210,6 @@ def update(db: Session, id_connection: int, data,current_user: UserLogin):
         db.commit()
         db.refresh(connection)
 
-        # 🔹 Registrar log
         create_log(
             db,
             user_id=current_user.id_user,
@@ -228,11 +219,9 @@ def update(db: Session, id_connection: int, data,current_user: UserLogin):
             description=f"El usuario {current_user.user} actualizó la conexión {connection.id_connection}"
         )
 
-        # 🔹 Obtener coordenadas reales desde PostGIS
-        longitude = db.scalar(func.ST_X(connection.coordinates))
-        latitude = db.scalar(func.ST_Y(connection.coordinates))
+        longitude = db.scalar(func.ST_X(connection.coordenates))
+        latitude = db.scalar(func.ST_Y(connection.coordenates))
 
-        # 🔹 Estructurar respuesta
         response = {
             "id_connection": connection.id_connection,
             "latitude": latitude,
@@ -259,6 +248,7 @@ def update(db: Session, id_connection: int, data,current_user: UserLogin):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar la conexión: {e}")
+
 
 
 def toggle_state(db: Session, id_connection: int,current_user: UserLogin):
