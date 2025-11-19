@@ -12,6 +12,13 @@ class RolBase(BaseModel):
 class RolCreate(RolBase):
     permission_ids: List[int] = []
 
+# Para actualización de rol
+class RolUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+    permission_ids: Optional[List[int]] = None
+
 # Para respuesta al cliente (salida)
 class RolResponse(RolBase):
     id_rol: int

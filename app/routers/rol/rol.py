@@ -1,5 +1,5 @@
-from app.controllers.Rol.rol import get_all, get_by_id,  create
-from app.schemas.rol.rol import RolBase,RolCreate,RolResponse
+from app.controllers.Rol.rol import get_all, get_by_id, create, update, get_permissions_grouped
+from app.schemas.rol.rol import RolBase, RolCreate, RolUpdate, RolResponse
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.response import success_response, error_response
 from app.schemas.user.user import UserLogin
@@ -44,6 +44,16 @@ async def list_rol(
     except Exception as e:
         return error_response(f"Error al obtener los roles: {e}")
 
+@router.get('/permissions/grouped')
+async def get_grouped_permissions(
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        grouped_permissions = get_permissions_grouped(db)
+        return success_response(grouped_permissions)
+    except Exception as e:
+        return error_response(f"Error al obtener los permisos agrupados: {e}")
 
 @router.get('/{id_rol}')
 async def get_rol(
@@ -66,5 +76,22 @@ async def create_rol(
     try:
         new_rol = create(db, data,current_user)
         return success_response(RolResponse.model_validate(new_rol).model_dump(mode="json"))
+    except HTTPException:
+        raise
     except Exception as e:
-        return error_response(f"Error al crear el rol{e}")
+        return error_response(f"Error al crear el rol: {e}")
+
+@router.put('/{id_rol}', response_model = RolResponse)
+async def update_rol(
+    id_rol: int,
+    data: RolUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        updated_rol = update(db, id_rol, data, current_user)
+        return success_response(RolResponse.model_validate(updated_rol).model_dump(mode="json"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        return error_response(f"Error al actualizar el rol: {e}")
