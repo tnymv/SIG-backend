@@ -26,28 +26,40 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
     
     if search and search.strip():
         search_term = f"%{search.strip().lower()}%"
-        query = query.filter(
-            or_(
-                func.lower(func.coalesce(Connection.material, '')).like(search_term),
-                func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
-                func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
-                func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
-                func.lower(func.coalesce(Connection.description, '')).like(search_term)
-            )
-        )
+        search_filters = [
+            func.lower(func.coalesce(Connection.material, '')).like(search_term),
+            func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
+            func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
+            func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
+            func.lower(func.coalesce(Connection.description, '')).like(search_term)
+        ]
+        
+        try:
+            search_id = int(search.strip())
+            search_filters.append(Connection.id_connection == search_id)
+        except ValueError:
+            pass
+        
+        query = query.filter(or_(*search_filters))
 
     count_query = db.query(Connection)
     if search and search.strip():
         search_term = f"%{search.strip().lower()}%"
-        count_query = count_query.filter(
-            or_(
-                func.lower(func.coalesce(Connection.material, '')).like(search_term),
-                func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
-                func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
-                func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
-                func.lower(func.coalesce(Connection.description, '')).like(search_term)
-            )
-        )
+        search_filters = [
+            func.lower(func.coalesce(Connection.material, '')).like(search_term),
+            func.lower(func.coalesce(Connection.connection_type, '')).like(search_term),
+            func.lower(func.coalesce(Connection.pressure_nominal, '')).like(search_term),
+            func.lower(func.coalesce(Connection.installed_by, '')).like(search_term),
+            func.lower(func.coalesce(Connection.description, '')).like(search_term)
+        ]
+        
+        try:
+            search_id = int(search.strip())
+            search_filters.append(Connection.id_connection == search_id)
+        except ValueError:
+            pass
+        
+        count_query = count_query.filter(or_(*search_filters))
     total = count_query.count()
     
     connections = query.offset(offset).limit(limit).all()
