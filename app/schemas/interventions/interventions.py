@@ -18,7 +18,9 @@ class InterventionsResponse(InterventionsBase):
         from_attributes = True 
 
 class InterventionsCreate(InterventionsBase):
-    pass
+    id_tank: Optional[int] = None
+    id_pipes: Optional[int] = None
+    id_connection: Optional[int] = None
     
 class InterventionsUpdate(BaseModel):
     description: Optional[str] = None

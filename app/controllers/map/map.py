@@ -13,7 +13,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.schemas.user.user import UserLogin
 from sqlalchemy import func
-
+from app.models.interventions.interventions import Interventions
+from app.models.intervention_entities.intervention_entities import Intervention_entities
+import json
 
 
 def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
@@ -150,3 +152,65 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
         )
 
     return tank_list
+
+def get_interventions_in_range(db: Session, start_date, end_date):
+
+    interventions = (
+        db.query(Interventions)
+        .filter(Interventions.start_date >= start_date)
+        .filter(Interventions.end_date <= end_date)
+        .options(
+            joinedload(Interventions.entities).joinedload(Intervention_entities.tank),
+            joinedload(Interventions.entities).joinedload(Intervention_entities.pipe),
+            joinedload(Interventions.entities).joinedload(Intervention_entities.connection)
+        )
+        .all()
+    )
+
+    results = []
+
+    for intervention in interventions:
+        for e in intervention.entities:
+
+            # ---------- TANK (POINT) ----------
+            if e.tank and e.tank.coordinates is not None:
+                lon = db.query(func.ST_X(e.tank.coordinates)).scalar()
+                lat = db.query(func.ST_Y(e.tank.coordinates)).scalar()
+
+                results.append({
+                    "type": "tank",
+                    "id": e.tank.id_tank,
+                    "coordinates": {"lat": lat, "lng": lon},
+                    "intervention": intervention.id_interventions
+                })
+
+            # ---------- PIPE (LINESTRING GEOJSON) ----------
+            if e.pipe and e.pipe.coordinates is not None:
+
+                geojson_str = db.query(
+                    func.ST_AsGeoJSON(e.pipe.coordinates)
+                ).scalar()
+
+                geojson = json.loads(geojson_str)
+
+                results.append({
+                    "type": "pipe",
+                    "id": e.pipe.id_pipes,
+                    "geometry": geojson,   # <-- AHORA ES JSON VALIDO
+                    "intervention": intervention.id_interventions
+                })
+
+            # ---------- CONNECTION (POINT) ----------
+            if e.connection and e.connection.coordinates is not None:
+
+                lon = db.query(func.ST_X(e.connection.coordinates)).scalar()
+                lat = db.query(func.ST_Y(e.connection.coordinates)).scalar()
+
+                results.append({
+                    "type": "connection",
+                    "id": e.connection.id_connection,
+                    "coordinates": {"lat": lat, "lng": lon},
+                    "intervention": intervention.id_interventions
+                })
+
+    return results

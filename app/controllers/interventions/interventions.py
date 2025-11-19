@@ -22,23 +22,18 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     
     offset = (page - 1) * limit
     
-    # Construir query base
     query = db.query(Interventions)
     
-    # Aplicar búsqueda si se proporciona
     if search and search.strip():
         search_term = f"%{search.strip().lower()}%"
         query = query.filter(
             func.lower(Interventions.description).like(search_term)
         )
     
-    # Contar total antes de paginar
     total = query.count()
     
-    # Aplicar paginación
     interventions = query.offset(offset).limit(limit).all()
     
-    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not interventions and not search:
         raise HTTPException(
             status_code = 404, 
@@ -130,7 +125,7 @@ def create(db: Session, data: InterventionsCreate, current_user: UserLogin):
         db.refresh(new_intervention)
 
         intervention_entity = Intervention_entities(
-            id_interventions=new_intervention.id_interventions,
+            d_interventions=new_intervention.id_interventions,
             id_tank=data.id_tank,
             id_pipes=data.id_pipes,
             id_connection=data.id_connection
