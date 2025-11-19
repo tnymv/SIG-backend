@@ -161,9 +161,9 @@ def get_by_id(db: Session, pipe_id: int):
 
 
 def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
-    existing = db.query(Pipes).filter(Pipes.material == pipe_data.material).first()
-    if existing:
-        raise HTTPException(status_code=409, detail=existence_response_dict(True, "La tubería ya existe"))
+    # existing = db.query(Pipes).filter(Pipes.material == pipe_data.material).first()
+    # if existing:
+    #     raise HTTPException(status_code=409, detail=existence_response_dict(True, "La tubería ya existe"))
 
     try:
         # Validar que coordinates tenga exactamente 2 puntos
