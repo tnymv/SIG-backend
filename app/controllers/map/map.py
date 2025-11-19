@@ -22,55 +22,79 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
         .options(
             joinedload(Tank.pipes).joinedload(Pipes.connections)
         )
+        .filter(Tank.state == True)   # <-- SOLO TANQUES ACTIVOS
         .all()
     )
 
     if not tanks:
         raise HTTPException(
             status_code=404,
-            detail=existence_response_dict(False, "No hay tanques disponibles"),
-            headers={"X-Error": "No hay tanques disponibles"}
+            detail=existence_response_dict(False, "No hay tanques activos"),
+            headers={"X-Error": "No hay tanques activos"}
         )
 
-    all_pipe_ids = list(set([pipe.id_pipes for tank in tanks for pipe in tank.pipes]))
+    # Filtrar tuberías activas
+    for tank in tanks:
+        tank.pipes = [pipe for pipe in tank.pipes if pipe.status == True]
+
+    # Filtrar conexiones activas
+    for tank in tanks:
+        for pipe in tank.pipes:
+            pipe.connections = [
+                conn for conn in pipe.connections if conn.state == True
+            ]
+
+    # IDs después de filtrar
+    all_pipe_ids = list(set(
+        pipe.id_pipes
+        for tank in tanks
+        for pipe in tank.pipes
+    ))
+
     pipe_coords_map = {}
-    
+
     if all_pipe_ids:
         pipe_coords_query = db.query(
             Pipes.id_pipes,
             func.ST_AsText(Pipes.coordinates)
         ).filter(Pipes.id_pipes.in_(all_pipe_ids)).all()
-        
+
         pipe_coords_map = {pid: coords_text for pid, coords_text in pipe_coords_query}
 
-    all_conn_ids = list(set([
-        conn.id_connection 
-        for tank in tanks 
-        for pipe in tank.pipes 
+    all_conn_ids = list(set(
+        conn.id_connection
+        for tank in tanks
+        for pipe in tank.pipes
         for conn in pipe.connections
-    ]))
+    ))
+
     conn_coords_map = {}
-    
+
     if all_conn_ids:
         conn_coords_query = db.query(
             Connection.id_connection,
             func.ST_X(Connection.coordenates).label("longitude"),
             func.ST_Y(Connection.coordenates).label("latitude")
-        ).filter(Connection.id_connection.in_(all_conn_ids)).all()
-        
+        ).filter(
+            Connection.id_connection.in_(all_conn_ids)
+        ).filter(
+            Connection.state == True      # <-- SOLO CONEXIONES ACTIVAS (opcional)
+        ).all()
+
         conn_coords_map = {cid: (lon, lat) for cid, lon, lat in conn_coords_query}
 
+    # Construcción final
     tank_list = []
-    
+
     for tank in tanks:
         tank_lon = db.scalar(func.ST_X(tank.coordinates))
         tank_lat = db.scalar(func.ST_Y(tank.coordinates))
 
         pipes_data = []
-        
+
         for pipe in tank.pipes:
             pipe_coords_text = pipe_coords_map.get(pipe.id_pipes, "LINESTRING()")
-            
+
             coords = []
             if pipe_coords_text and pipe_coords_text != "LINESTRING()":
                 coords_str = pipe_coords_text.replace("LINESTRING(", "").replace(")", "")
@@ -84,7 +108,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
             connections_data = []
             for conn in pipe.connections:
                 lon_conn, lat_conn = conn_coords_map.get(conn.id_connection, (0.0, 0.0))
-                
+
                 connections_data.append(
                     ConnectionSchema(
                         id_connection=conn.id_connection,
