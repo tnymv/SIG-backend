@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from typing import List
 from sqlalchemy.orm import Session
+from datetime import datetime
 from app.db.database import get_db
 from app.schemas.log.logs import LogSummaryResponse, LogBase
 from app.schemas.user.user import UserLogin
@@ -8,7 +10,8 @@ from app.controllers.auth.auth_controller import get_current_active_user
 from app.controllers.Report.report import (
     get_logs_summary_controller,
     get_logs_detail_controller,
-    get_available_entities_controller
+    get_available_entities_controller,
+    export_logs_to_excel_controller
 )
 
 router = APIRouter(prefix='/report', tags=['Reports'])
@@ -43,3 +46,57 @@ async def get_available_entities(
 ):
     entities = get_available_entities_controller(db)
     return {"entities": entities}
+
+
+@router.get("/logs/export-excel")
+async def export_logs_to_excel(
+    date_start: str,
+    date_finish: str,
+    name_entity: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    """
+    Exporta logs a Excel con formato profesional
+    
+    Args:
+        date_start: Fecha de inicio (formato ISO: YYYY-MM-DD)
+        date_finish: Fecha de fin (formato ISO: YYYY-MM-DD)
+        name_entity: Nombre de la entidad a filtrar
+        db: Sesión de base de datos
+        current_user: Usuario autenticado
+    
+    Returns:
+        Response: Archivo Excel para descargar
+    """
+    try:
+        # Preparar información del usuario
+        user_info = {
+            'user_id': current_user.id_user if hasattr(current_user, 'id_user') else None,
+            'username': current_user.user if hasattr(current_user, 'user') else 'Usuario'
+        }
+        
+        # Generar Excel
+        excel_buffer = export_logs_to_excel_controller(
+            db=db,
+            date_start=date_start,
+            date_finish=date_finish,
+            name_entity=name_entity,
+            user_info=user_info
+        )
+        
+        # Generar nombre de archivo con fecha actual
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"reporte-{name_entity}-{current_date}.xlsx"
+        
+        # Retornar archivo Excel como respuesta
+        return Response(
+            content=excel_buffer.read(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except Exception as e:
+        # El manejo de errores ya está en el controller
+        raise
