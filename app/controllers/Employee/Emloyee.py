@@ -34,7 +34,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     total = query.count()
     
     # Aplicar paginación
-    data_employee = query.offset(offset).limit(limit).all()
+    data_employee = query.order_by(Employee.id_employee.desc()).offset(offset).limit(limit).all()
     
     # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not data_employee and not search:

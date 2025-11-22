@@ -143,6 +143,7 @@ async def lifespan(app: FastAPI):
         ]
 
         # Sierve para Insertar permisos si es que existen
+        permisos_creados = []
         for nombre, descripcion in permisos_por_defecto:
             permiso_existente = db.query(Permissions).filter(Permissions.name == nombre).first()
             if not permiso_existente:
@@ -152,8 +153,21 @@ async def lifespan(app: FastAPI):
                     status=True
                 )
                 db.add(nuevo_permiso)
+                permisos_creados.append(nombre)
         
         db.commit()
+        
+        if admin_role:
+            todos_los_permisos = db.query(Permissions).filter(Permissions.status == True).all()
+            
+            permisos_actuales = {perm.id_permissions for perm in admin_role.permissions}
+            
+            permisos_a_agregar = [perm for perm in todos_los_permisos if perm.id_permissions not in permisos_actuales]
+            
+            if permisos_a_agregar:
+                admin_role.permissions.extend(permisos_a_agregar)
+                db.commit()
+                db.refresh(admin_role)
 
     except Exception as e:
         db.rollback()

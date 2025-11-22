@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import EmailStr
 
 # Campos compartidos por varios schemas
@@ -23,6 +23,25 @@ class UserUpdate(BaseModel):
     rol_id: Optional[int] = None
     status: Optional[int] = None
 
+class PermissionInfo(BaseModel):
+    id_permissions: int
+    name: str
+    description: str
+    status: bool
+
+    class Config:
+        from_attributes = True
+
+# Schema para información del rol
+class RolInfo(BaseModel):
+    id_rol: int
+    name: str
+    description: Optional[str]
+    status: bool
+
+    class Config:
+        from_attributes = True
+
 # Para respuesta al cliente (salida)
 class UserResponse(UserBase):
     id_user: int
@@ -31,6 +50,14 @@ class UserResponse(UserBase):
 
     class Config:
         from_attributes = True  
+
+
+class UserResponseWithPermissions(UserResponse):
+    rol: Optional[RolInfo] = None
+    permissions: List[PermissionInfo] = []
+
+    class Config:
+        from_attributes = True
         
 class UserLogin(BaseModel):
     user: str

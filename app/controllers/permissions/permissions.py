@@ -35,7 +35,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     total = query.count()
     
     # Aplicar paginación
-    data_permission = query.offset(offset).limit(limit).all()
+    data_permission = query.order_by(Permissions.id_permissions.desc()).offset(offset).limit(limit).all()
     
     # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not data_permission and not search:

@@ -52,7 +52,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     total = count_query.count()
     
     # Aplicar paginación
-    pipes = query.offset(offset).limit(limit).all()
+    pipes = query.order_by(Pipes.id_pipes.desc()).offset(offset).limit(limit).all()
 
     # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not pipes and not search:

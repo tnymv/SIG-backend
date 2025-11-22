@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.utils.auth import (
     verify_password,
     verify_token,
@@ -15,6 +15,11 @@ router = APIRouter(prefix='/auth', tags=['Authentication'])
 
 def get_user(db: Session, email: str): #Esta función es para obtener al usuario
     return db.query(username_model).filter(username_model.email == email).first()
+
+def get_user_with_permissions(db: Session, email: str): #Obtener usuario con rol y permisos cargados
+    return db.query(username_model).options(
+        joinedload(username_model.rol).joinedload(username_model.rol.property.mapper.class_.permissions)
+    ).filter(username_model.email == email).first()
 
 def authenticate_user(db: Session, username: str, password: str): #Esto sirve para autenticar al usuario
     user = get_user(db, username)
@@ -36,7 +41,13 @@ def get_current_user(token: str = Depends(oauth2_scheme),db: Session = Depends(g
     user = get_user(db, email=email)
     if user is None: 
         raise credentials_exception
-    return user
+    
+    from app.models.rol.rol import Rol
+    user_with_rol = db.query(username_model).options(
+        joinedload(username_model.rol).joinedload(Rol.permissions)
+    ).filter(username_model.id_user == user.id_user).first()
+    
+    return user_with_rol if user_with_rol else user
 
 def get_current_active_user(current_user: UserResponse = Depends(get_current_user)): #Esto nos sirve para verificar si el usuario está activo
     if not current_user.status:

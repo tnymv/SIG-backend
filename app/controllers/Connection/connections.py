@@ -62,7 +62,7 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
         count_query = count_query.filter(or_(*search_filters))
     total = count_query.count()
     
-    connections = query.offset(offset).limit(limit).all()
+    connections = query.order_by(Connection.id_connection.desc()).offset(offset).limit(limit).all()
 
     if not connections and not search:
         raise HTTPException(

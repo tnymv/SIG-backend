@@ -35,7 +35,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     total = query.count()
     
     # Aplicar paginación
-    user = query.offset(offset).limit(limit).all()
+    user = query.order_by(Username.id_user.desc()).offset(offset).limit(limit).all()
     
     # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not user and not search:
@@ -93,7 +93,16 @@ def create(db: Session, data: UserCreate,current_user: UserLogin):
 def update(db: Session, id_user: int, data: UserUpdate,current_user: UserLogin):
     user_data = get_by_id(db, id_user)
     
-    for field, value in data.dict(exclude_unset = True).items():
+    
+    update_data = data.dict(exclude_unset=True)
+    
+    # Si se proporciona password, hashearlo y asignarlo a password_hash
+    if 'password' in update_data and update_data['password']:
+        hashed_password = get_password_hash(update_data['password'])
+        user_data.password_hash = hashed_password
+        del update_data['password']
+    
+    for field, value in update_data.items():
         setattr(user_data, field, value)
 
     user_data.updated_at = datetime.utcnow()

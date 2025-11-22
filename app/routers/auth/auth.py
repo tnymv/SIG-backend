@@ -9,7 +9,7 @@ from app.utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.schemas.auth.auth import Token
-from app.schemas.user.user import UserResponse
+from app.schemas.user.user import UserResponse, UserResponseWithPermissions
 from app.db.database import get_db
 from app.controllers.auth.auth_controller import authenticate_user, get_current_active_user
 
@@ -43,11 +43,47 @@ async def login_for_access_token(
     
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get('/me', response_model=UserResponse)  #Este endpoint es para obtener la información del usuario actual
+@router.get('/me', response_model=UserResponseWithPermissions)  #Este endpoint es para obtener la información del usuario actual
 async def read_users_me(
-    current_user: UserResponse = Depends(get_current_active_user),
+    current_user = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    # Obtener información del rol
+    rol_info = None
+    if current_user.rol:
+        rol_info = {
+            "id_rol": current_user.rol.id_rol,
+            "name": current_user.rol.name,
+            "description": current_user.rol.description,
+            "status": current_user.rol.status
+        }
+    
+    permissions = []
+    if current_user.rol and current_user.rol.permissions:
+        active_permissions = [perm for perm in current_user.rol.permissions if perm.status]
+        permissions = [
+            {
+                "id_permissions": perm.id_permissions,
+                "name": perm.name,
+                "description": perm.description,
+                "status": perm.status
+            }
+            for perm in active_permissions
+        ]
+    
+    user_response = UserResponseWithPermissions(
+        id_user=current_user.id_user,
+        user=current_user.user,
+        password_hash=current_user.password_hash,
+        email=current_user.email,
+        employee_id=current_user.employee_id,
+        rol_id=current_user.rol_id,
+        status=current_user.status,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+        rol=rol_info,
+        permissions=permissions
+    )
     
     create_log(
         db=db,
@@ -55,4 +91,4 @@ async def read_users_me(
         action="READ",
         description=f"El usuario {current_user.user} consultó su información personal"
     )
-    return current_user
+    return user_response

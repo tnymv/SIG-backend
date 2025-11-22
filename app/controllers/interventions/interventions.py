@@ -32,7 +32,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     
     total = query.count()
     
-    interventions = query.offset(offset).limit(limit).all()
+    interventions = query.order_by(Interventions.id_interventions.desc()).offset(offset).limit(limit).all()
     
     if not interventions and not search:
         raise HTTPException(

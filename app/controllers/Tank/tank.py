@@ -37,7 +37,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
     total = query.count()
     
     # Aplicar paginación
-    tanks = query.offset(offset).limit(limit).all()
+    tanks = query.order_by(Tank.id_tank.desc()).offset(offset).limit(limit).all()
 
     # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
     if not tanks and not search:
