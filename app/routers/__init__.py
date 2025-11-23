@@ -1,10 +1,10 @@
-from app.routers.roi.rol import router as rol_router
+from app.routers.rol.rol import router as rol_router
 from app.routers.employee.employee import router as employee_router
 from app.routers.user.user import router as user_router
 from app.routers.auth.auth import router as auth_router
 from app.routers.tank.tank import router as tank_router
 from app.routers.report.report import router as report_router
-from app.routers.permissions.permissions import router as permission_router
+from app.routers.permissions.permissions import router as permsission_router
 from app.routers.pipes.pipes import router as pipes_router
 from app.routers.connection.connection import router as connection_router
 from app.routers.files.files import router as files_router
