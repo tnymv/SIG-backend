@@ -1,11 +1,10 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Numeric, Time
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Numeric, Time, Float
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 from datetime import datetime
 
 class Data_upload(Base):
     __tablename__ = "data_upload"
-    id_data_upload = Column(Integer, primary_key=True, index=True)
     # parte del encabezado
     siaf = Column(String(100), index= True, nullable = False)
     institutional_classification= Column(Integer, index= True, nullable= False)
@@ -15,7 +14,7 @@ class Data_upload(Base):
     seriereport = Column (String(100), index=True, nullable= False)
     user = Column(String(100), index= True, nullable=False)
     # infromacion del servicio
-    identifier = Column(String(100), index= True, nullable= False)
+    identifier = Column(String(100), primary_key=True, index=True)
     taxpayer= Column(String(100), index=True, nullable=False) #contribuyente
     cologne = Column(String(200), index=True, nullable=False) #colonia
     cat_service = Column(String(250), index=True, nullable=False)
@@ -25,3 +24,6 @@ class Data_upload(Base):
     status = Column(Boolean, index= True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    cannon =  Column(Float, index=True, nullable=False)
+    excess = Column(Float, index=True, nullable=False)
+    total = Column(Float, index=True, nullable=False)

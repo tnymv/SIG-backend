@@ -1,22 +1,24 @@
-from fastapi import FastAPI, APIRouter
-from starlette.responses import RedirectResponse
 from app.db.database import engine, Base, SessionLocal
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import RedirectResponse
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, APIRouter
 
 #Aqui se importan los los schemmas
-from app.controllers import rol_router,employee_router,user_router 
-from app.controllers import auth_router, tank_router, report_router, permsission_router, pipes_router
-from app.controllers import files_router
-from app.controllers import connection_router
-from app.controllers import connection_router, type_employee_router
+from app.routers import type_employee_router, tank_router, auth_router, employee_router
+from app.routers import permsission_router,rol_router, user_router, report_router
+from app.routers import pipes_router, connection_router, files_router, interventions_router
+from app.routers import data_upload_router
+from app.routers import map_router
+from app.routers.dashboard.dashboard import router as dashboard_router
 
-from app.models.user.user import Username
-from app.models.employee.employee import Employee
-from app.models.rol.rol import Rol
-from app.models.permissions.permissions import Permissions
+#Aqui se importan los modelos necesarios para la inicialización de datos
 from app.models.type_employee.type_employees import TypeEmployee
+from app.models.permissions.permissions import Permissions
+from app.models.employee.employee import Employee
 from app.utils.auth import get_password_hash
+from app.models.user.user import Username
+from app.models.rol.rol import Rol
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -141,6 +143,7 @@ async def lifespan(app: FastAPI):
         ]
 
         # Sierve para Insertar permisos si es que existen
+        permisos_creados = []
         for nombre, descripcion in permisos_por_defecto:
             permiso_existente = db.query(Permissions).filter(Permissions.name == nombre).first()
             if not permiso_existente:
@@ -150,13 +153,24 @@ async def lifespan(app: FastAPI):
                     status=True
                 )
                 db.add(nuevo_permiso)
+                permisos_creados.append(nombre)
         
         db.commit()
-        print("Permisos por defecto creados exitosamente")
+        
+        if admin_role:
+            todos_los_permisos = db.query(Permissions).filter(Permissions.status == True).all()
+            
+            permisos_actuales = {perm.id_permissions for perm in admin_role.permissions}
+            
+            permisos_a_agregar = [perm for perm in todos_los_permisos if perm.id_permissions not in permisos_actuales]
+            
+            if permisos_a_agregar:
+                admin_role.permissions.extend(permisos_a_agregar)
+                db.commit()
+                db.refresh(admin_role)
 
     except Exception as e:
         db.rollback()
-        print(f"Error al inicializar datos: {e}")
     finally:
         db.close()
     
@@ -198,6 +212,10 @@ api_version.include_router(pipes_router)
 api_version.include_router(connection_router)
 api_version.include_router(files_router)
 api_version.include_router(type_employee_router)
+api_version.include_router(interventions_router)
+api_version.include_router(data_upload_router)
+api_version.include_router(map_router)
+api_version.include_router(dashboard_router)
 #-----
 
 

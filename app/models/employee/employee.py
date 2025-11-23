@@ -1,9 +1,7 @@
-#models/employee/employee.py
-
 from sqlalchemy import Column, Integer, String,DateTime, Boolean, ForeignKey
-from datetime import datetime
-from app.db.database import Base
 from sqlalchemy.orm import relationship
+from app.db.database import Base
+from datetime import datetime
 
 class Employee(Base):
     __tablename__ = "employees"

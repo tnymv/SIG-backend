@@ -1,149 +1,111 @@
 from fastapi import HTTPException, APIRouter
 from app.models.tanks.tanks import Tank
-from typing import List
+from typing import List, Optional
 from datetime import datetime
-from app.schemas.tanks.tanks import TankBase, TankResponse, TankResponseCreate, TankUpdate
-from app.db.database import get_db
+from app.schemas.tanks.tanks import TankBase, TankResponse, TankUpdate
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from fastapi import Depends
-from app.utils.response import success_response, error_response, existence_response_dict
-from app.controllers.auth.auth_controller import get_current_active_user
-from app.schemas.user.user import UserLogin
+from sqlalchemy import func, or_
+from app.utils.response import existence_response_dict
 from app.utils.logger import create_log
-from sqlalchemy import func
+from app.schemas.user.user import UserLogin
 
-router = APIRouter(prefix='/tank', tags=['Tank'])
 
-@router.get('', response_model=List[TankResponse])  
-async def get_all_tanks(
-    db: Session = Depends(get_db),
-    page: int = 1,
-    limit: int = 5,
-    current_user: UserLogin = Depends(get_current_active_user)
-):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
-    try:
-        if page < 1 or limit < 1:
-            raise HTTPException(
-                status_code=400, 
-                detail="La página y el límite deben ser mayores que 0"
-            )
-        offset = (page - 1) * limit
-        tanks = db.query(
-            Tank,
-            func.ST_X(Tank.coordinates).label('longitude'),
-            func.ST_Y(Tank.coordinates).label('latitude')
-        ).offset(offset).limit(limit).all()
-        
-        if not tanks:
-            return success_response([])
-
-        tanks_response = []
-        for tank, longitude, latitude in tanks:
-            photography_list = list(tank.photography) if tank.photography else []
-            
-            tank_response = TankResponse(
-                id_tank=tank.id_tank,
-                name=tank.name,
-                latitude=latitude,
-                longitude=longitude,
-                connections=tank.connections,
-                photography=photography_list,
-                state=tank.state,
-                created_at=tank.created_at,
-                updated_at=tank.updated_at
-            )
-            
-            tanks_response.append(tank_response.model_dump(mode="json"))
-
-        create_log(
-            db,
-            user_id = current_user.id_user,
-            action = "READ",
-            entity = "Tank",
-            description= f"El usuario {current_user.user} accedió a la lista de tanques"
-        )
-        return success_response(tanks_response)
+    offset = (page - 1) * limit
     
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener los tanques: {str(e)}",
-            headers={"X-Error": f"Error al obtener los tanques: {str(e)}"}
-        )
-
-@router.get('/{tank_id}', response_model=TankResponse)
-async def get_tank_by_id(
-    tank_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-
-    try:
-        result = db.query(
-            Tank,
-            func.ST_X(Tank.coordinates).label('longitude'),
-            func.ST_Y(Tank.coordinates).label('latitude')
-        ).filter(Tank.id_tank == tank_id).first()
-        
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=existence_response_dict(False, "El tanque no existe"),
-                headers={"X-Error": "El tanque no existe"}
-            )
-        
-        tank, longitude, latitude = result
-        
-        photography_list = list(tank.photography) if tank.photography else []
-        
-        tank_response = TankResponse(
-            id_tank=tank.id_tank,
-            name=tank.name,
-            latitude=latitude,
-            longitude=longitude,
-            connections=tank.connections,
-            photography=photography_list,
-            state=tank.state,
-            created_at=tank.created_at,
-            updated_at=tank.updated_at
-        )
-        
-        create_log(
-            db,
-            user_id = current_user.id_user,
-            action = "READ",
-            entity = "Tank",
-            description= f"El usuario {current_user.user} accedió a la lista de tanques"
-        )
-        return success_response(tank_response.model_dump(mode="json"))
+    # Construir query base con coordenadas
+    query = db.query(
+        Tank,
+        func.ST_X(Tank.coordinates).label('longitude'),
+        func.ST_Y(Tank.coordinates).label('latitude')
+    )
     
-    except HTTPException:
-        raise
-    except Exception as e:
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Tank.name).like(search_term),
+                func.lower(func.coalesce(Tank.connections, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar
+    total = query.count()
+    
+    # Aplicar paginación
+    tanks = query.order_by(Tank.id_tank.desc()).offset(offset).limit(limit).all()
+
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not tanks and not search:
         raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener el tanque: {str(e)}",
-            headers={"X-Error": f"Error al obtener el tanque: {str(e)}"}
+            status_code=404,
+            detail=existence_response_dict(False, "No hay tanques disponibles"),
+            headers={"X-Error": "No hay tanques disponibles"}
         )
 
-@router.post('', response_model=TankResponseCreate)  # ← Agregar response_model
-async def create_tank(
-    tank_data: TankBase,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    if db.query(Tank).filter(Tank.name == tank_data.name).first():
+    tank_list = [
+        {
+            "id_tank": t.id_tank,
+            "name": t.name,
+            "latitude": lat,
+            "longitude": lon,
+            "connections": t.connections,
+            "photography": list(t.photography or []),
+            "state": t.state,
+            "created_at": t.created_at,
+            "updated_at": t.updated_at
+        }
+        for t, lon, lat in tanks
+    ]
+
+    return tank_list, total
+
+
+def get_by_id(db: Session, tank_id: int):
+    result = db.query(
+        Tank,
+        func.ST_X(Tank.coordinates).label('longitude'),
+        func.ST_Y(Tank.coordinates).label('latitude')
+    ).filter(Tank.id_tank == tank_id).first()
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail=existence_response_dict(False, "El tanque no existe"),
+            headers={"X-Error": "El tanque no existe"}
+        )
+
+    tank, longitude, latitude = result
+
+    tank_dict = {
+        "id_tank": tank.id_tank,
+        "name": tank.name,
+        "latitude": latitude,
+        "longitude": longitude,
+        "connections": tank.connections,
+        "photography": list(tank.photography or []),
+        "state": tank.state,
+        "created_at": tank.created_at,
+        "updated_at": tank.updated_at
+    }
+    
+    return tank_dict
+
+def create(db: Session, tank_data: TankBase,current_user: UserLogin):
+    existing_tank = db.query(Tank).filter(Tank.name == tank_data.name).first()
+    if existing_tank:
         raise HTTPException(
             status_code=409,
             detail=existence_response_dict(True, "El tanque ya existe"),
             headers={"X-Error": "El tanque ya existe"}
         )
-    
     try:
         new_tank = Tank(
-            name=tank_data.name,
+            name=tank_data.name, 
             coordinates=f"SRID=4326;POINT({tank_data.longitude} {tank_data.latitude})",
             connections=tank_data.connections,
             photography=tank_data.photography if tank_data.photography else [],
@@ -155,50 +117,44 @@ async def create_tank(
         db.add(new_tank)
         db.commit()
         db.refresh(new_tank)
-        
-        # Convertir arrays de PostgreSQL a listas de Python
-        photography_list = list(new_tank.photography) if new_tank.photography else []
-        
-        tank_response = TankResponseCreate(
-            id_tank=new_tank.id_tank,
-            name=new_tank.name,
-            latitude=tank_data.latitude,
-            longitude=tank_data.longitude,
-            connections=tank_data.connections,
-            state=new_tank.state,
-            created_at=new_tank.created_at,
-            updated_at=new_tank.updated_at
-        )
+
+        longitude, latitude = db.query(
+            func.ST_X(new_tank.coordinates),
+            func.ST_Y(new_tank.coordinates)
+        ).first()
+
+        tank_dict = {
+            "id_tank": new_tank.id_tank,
+            "name": new_tank.name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "connections": new_tank.connections,
+            "photography": list(new_tank.photography) if new_tank.photography else [],
+            "state": new_tank.state,
+            "created_at": new_tank.created_at,
+            "updated_at": new_tank.updated_at
+        }
         create_log(
             db,
-            user_id = current_user.id_user,
+            user_id=current_user.id_user,
             action = "CREATE",
             entity = "Tank",
-            description= f"El usuario {current_user.user} creó un nuevo tanque"
-        )
-        return success_response(tank_response.model_dump(mode="json"))
-    
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al crear el tanque: {str(e)}")
-    
+            entity_id=new_tank.id_tank,
+            description=f"El usuario {current_user.user} creó el tanque {new_tank.name}"
+        ) 
+        return tank_dict
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=f"Error al crear el tanque: {str(e)}",
-            headers={"X-Error": f"Error al crear el tanque: {str(e)}"}
+            detail=f"Error al crear el tanque: {str(e)}"
         )
-        
-@router.put('/{tank_id}', response_model=TankResponse)
-async def update_tank(
-    tank_id: int,
-    tank_data: TankUpdate,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    #Buscar tanque
+
+
+def update(db: Session, tank_id: int, tank_data: TankUpdate,current_user: UserLogin):
     tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
+
     if not tank:
         raise HTTPException(
             status_code=404,
@@ -206,111 +162,82 @@ async def update_tank(
             headers={"X-Error": "El tanque no existe"}
         )
 
-    #Validar si el nuevo nombre ya existe en otro tanque
-    if tank_data.name and tank_data.name != tank.name:
-        existin_tank = db.query(Tank).filter(Tank.name == tank_data.name).first()
-        if existin_tank:
-            raise HTTPException(
-                status_code=409,
-                detail=existence_response_dict(True, "El nombre del tanque ya existe"),
-                headers={"X-Error": "El nombre del tanque ya existe"}
-            )
-    
     try:
-        # Actualizar solo los campos proporcionados (no None)
-        if tank_data.name is not None:
-            tank.name = tank_data.name
-            
-        if tank_data.latitude is not None and tank_data.longitude is not None:
-            tank.coordinates = f"SRID=4326;POINT({tank_data.longitude} {tank_data.latitude})"
-        elif tank_data.latitude is not None or tank_data.longitude is not None:
-            raise HTTPException(
-                status_code=400,
-                detail="Ambos campos latitude y longitude deben ser proporcionados juntos.",
-                headers={"X-Error": "Campos de coordenadas incompletos"}
-            )
-        if tank_data.connections is not None:
-            tank.connections = tank_data.connections
-            
-        if tank_data.photography is not None:
-            tank.photography = tank_data.photography
-        if tank_data.state is not None:
-            tank.state = tank_data.state
+        update_data = tank_data.dict(exclude_unset=True)
+
+        if "latitude" in update_data and "longitude" in update_data:
+            tank.coordinates = f"SRID=4326;POINT({update_data['longitude']} {update_data['latitude']})"
+            update_data.pop("latitude", None)
+            update_data.pop("longitude", None)
+
+        for field, value in update_data.items():
+            setattr(tank, field, value)
+
         tank.updated_at = datetime.now()
-        
+
         db.commit()
         db.refresh(tank)
-        
-        # Obtener coordenadas usando funciones PostGIS (igual que en GET)
-        result = db.query(
-            Tank,
-            func.ST_X(Tank.coordinates).label('longitude'),
-            func.ST_Y(Tank.coordinates).label('latitude')
-        ).filter(Tank.id_tank == tank.id_tank).first()
-        
-        tank, longitude, latitude = result
-        photography_list = list(tank.photography) if tank.photography else []
-        
-        tank_response = TankResponse(
-            id_tank=tank.id_tank,
-            name=tank.name,
-            latitude=latitude,
-            longitude=longitude,
-            connections=tank.connections,
-            photography=photography_list,
-            state=tank.state,
-            created_at=tank.created_at,
-            updated_at=tank.updated_at
-        )
+
+        longitude, latitude = db.query(
+            func.ST_X(tank.coordinates),
+            func.ST_Y(tank.coordinates)
+        ).first()
+
+        tank_dict = {
+            "id_tank": tank.id_tank,
+            "name": tank.name,
+            "latitude": latitude,
+            "longitude": longitude,
+            "connections": tank.connections,
+            "photography": list(tank.photography) if tank.photography else [],
+            "state": tank.state,
+            "created_at": tank.created_at,
+            "updated_at": tank.updated_at
+        }
         create_log(
             db,
-            user_id = current_user.id_user,
-            action = "PUT",
+            user_id=current_user.id_user,
+            action = "UPDATE",
             entity = "Tank",
-            description= f"El usuario {current_user.user} actualizó el tanque {tank.id_tank}"
-        )
-        return success_response(tank_response.model_dump(mode="json"))
+            entity_id=tank.id_tank,
+            description=f"El usuario {current_user.user} actualizo el tanque {tank.name}"
+        ) 
+        return tank_dict
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al actualizar el tanque: {str(e)}")
-    
-@router.delete('/{tank_id}', response_model = TankResponse)
-async def delete_tank(
-    tank_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al actualizar el tanque: {str(e)}"
+        )
+
+
+def toggle_state(db: Session, tank_id: int,current_user: UserLogin):
     tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
+
     if not tank:
         raise HTTPException(
             status_code=404,
             detail=existence_response_dict(False, "El tanque no existe"),
             headers={"X-Error": "El tanque no existe"}
         )
-        
-    try:
-        # Toggle del estado: si está activo lo desactiva, si está inactivo lo activa
-        tank.state = not tank.state
-        tank.updated_at = datetime.now()
-        db.commit()
-        db.refresh(tank)
-        # Log con la acción correcta según el nuevo estado
-        action_description = "activó" if tank.state else "desactivó"
-        create_log(
-            db,
-            user_id = current_user.id_user,
-            action = "DELETE",
-            entity = "Tank",
-            description= f"El usuario {current_user.user} {action_description} el tanque {tank.id_tank}"
-        )   
-        
-        status_message = "Tanque activado exitosamente" if tank.state else "Tanque desactivado exitosamente"
-        return success_response(status_message)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=error_response(f"Error al eliminar el tanque: {str(e)}").body.decode(),
-            headers={"X-Error": f"Error al eliminar el tanque: {str(e)}"}
-        )
+
+    tank.state = not tank.state
+    tank.updated_at = datetime.now()
+
+    db.commit()
+    db.refresh(tank)
+    status = ""
+    if tank.state is False:
+        status = "inactivo"
+    else: 
+        status = "activo" 
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action = "TOGGLE",
+        entity = "Tank",
+        entity_id=tank.id_tank,
+        description=f"El usuario {current_user.user}, {status} el permiso {tank.name}"
+    ) 
+    return tank

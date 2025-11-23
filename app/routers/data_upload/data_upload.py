@@ -5,7 +5,7 @@ from app.db.database import get_db
 from app.schemas.user.user import UserLogin
 from app.schemas.data_upload.data_upload import Data_uploadResponse, Data_uploadCreate, Data_uploadUpdate
 from app.controllers.data_upload.data_upload import (
-    get_all, get_by_id, create, update, toggle_state, create_bulk, process_excel_data
+    get_all, get_by_identifier,  update, toggle_state,  process_excel_data
 )
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.response import success_response, error_response
@@ -43,43 +43,16 @@ async def list_data_uploads(
 
 @router.get("/{data_upload_id}", response_model=Data_uploadResponse)
 async def get_data_upload(
-    data_upload_id: int,
+    identifier: str,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        data_upload = get_by_id(db, data_upload_id)
+        data_upload = get_by_identifier(db, identifier)
         return success_response(Data_uploadResponse.model_validate(data_upload).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al obtener el registro de data upload: {e}")
 
-@router.post("", response_model=Data_uploadResponse)
-async def create_data_upload(
-    data: Data_uploadCreate,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    try:
-        new_data_upload = create(db, data, current_user)
-        return success_response(Data_uploadResponse.model_validate(new_data_upload).model_dump(mode="json"))
-    except Exception as e:
-        return error_response(f"Error al crear el registro de data upload: {e}")
-
-@router.post("/bulk", response_model=List[Data_uploadResponse])
-async def create_bulk_data_uploads(
-    data_list: List[Data_uploadCreate],
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    try:
-        created_records = create_bulk(db, data_list, current_user)
-        data = [Data_uploadResponse.model_validate(du).model_dump(mode="json") for du in created_records]
-        return success_response({
-            "message": f"Se crearon {len(created_records)} registros exitosamente",
-            "items": data
-        })
-    except Exception as e:
-        return error_response(f"Error al crear los registros de data upload: {e}")
 
 # ✅ NUEVO ENDPOINT PARA SUBIR EXCEL
 @router.post("/upload-excel")
@@ -88,12 +61,7 @@ async def upload_excel_file(
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
-    """
-    Sube y procesa un archivo Excel con datos de servicios
-    
-    - **file**: Archivo Excel (.xlsx, .xls) con la estructura SIAF
-    - **Returns**: Resultado del procesamiento con conteo de registros creados
-    """
+
     try:
         # Verificar tipo de archivo
         if not file.filename.lower().endswith(('.xlsx', '.xls')):
@@ -109,7 +77,7 @@ async def upload_excel_file(
         
         if result["success"]:
             return success_response({
-                "message": f"✅ Archivo '{file.filename}' procesado exitosamente",
+                "message": f"Archivo '{file.filename}' procesado exitosamente",
                 "created_records": result["created_records"],
                 "total_processed": result["total_processed"],
                 "errors": result["errors"],
@@ -117,7 +85,7 @@ async def upload_excel_file(
             })
         else:
             return error_response({
-                "message": "❌ Error al procesar archivo",
+                "message": "Error al procesar archivo",
                 "errors": result["errors"],
                 "filename": file.filename
             })
@@ -125,27 +93,27 @@ async def upload_excel_file(
     except Exception as e:
         return error_response(f"Error al subir archivo: {str(e)}")
 
-@router.put("/{data_upload_id}", response_model=Data_uploadResponse)
+@router.put("/{identifier}", response_model=Data_uploadResponse)
 async def update_data_upload(
-    data_upload_id: int,
+    identifier: str,
     data: Data_uploadUpdate,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        updated_data_upload = update(db, data_upload_id, data, current_user)
+        updated_data_upload = update(db, identifier, data, current_user)
         return success_response(Data_uploadResponse.model_validate(updated_data_upload).model_dump(mode="json"))
     except Exception as e:
         return error_response(f"Error al actualizar el registro de data upload: {e}")
 
-@router.delete("/{data_upload_id}")
+@router.delete("/{identifier}")
 async def toggle_data_upload_state(
-    data_upload_id: int,
+    identifier: str,
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        data_upload = toggle_state(db, data_upload_id, current_user)
+        data_upload = toggle_state(db, identifier, current_user)
         action = "activó" if data_upload.status else "desactivó"
         return success_response({
             "message": f"El usuario {current_user.user} {action} el registro {data_upload.taxpayer} - {data_upload.cologne} correctamente."

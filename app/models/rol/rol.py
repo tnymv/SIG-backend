@@ -1,8 +1,8 @@
 #models/rol/rol.py
-from sqlalchemy import Column, Integer, String,DateTime
-from datetime import datetime
+from sqlalchemy import Column, Integer, String,DateTime, Boolean
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from datetime import datetime
 
 class Rol(Base):
     __tablename__ = "roles"
@@ -11,7 +11,7 @@ class Rol(Base):
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(Integer, default=1)  # 1: activo, 0: inactivo
+    status = Column(Boolean, default=True)
     
     # Relación con la tabla permisos
     permissions = relationship("Permissions",secondary="rol_permissions", back_populates="roles")

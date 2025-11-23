@@ -1,7 +1,8 @@
 from fastapi import HTTPException, APIRouter
 from app.models.pipes.pipes import Pipes
 from app.models.tanks.tanks import Tank
-from typing import List
+from app.models.connection.connections import Connection
+from typing import List, Optional
 from datetime import datetime
 from app.schemas.pipes.pipes import PipesBase, PipesResponse,PipesResponseCreate, PipesUpdate, TankSimple
 from app.db.database import get_db
@@ -12,331 +13,410 @@ from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_
+import json
+from geoalchemy2 import WKTElement
 
-router = APIRouter(prefix='/pipes', tags=['Pipes'])
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
+    if page < 1 or limit < 1:
+        raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
-@router.get('', response_model=List[PipesResponse])
-async def get_pipes(
-    page: int = 1, limit: int = 5,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-    ):
+    offset = (page - 1) * limit
+    
+    # Construir query base con coordenadas
+    query = db.query(
+        Pipes,
+        func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")
+    ).options(joinedload(Pipes.tanks))
+    
+    # Aplicar búsqueda si se proporciona
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(Pipes.material).like(search_term),
+                func.lower(func.coalesce(Pipes.observations, '')).like(search_term)
+            )
+        )
+    
+    # Contar total antes de paginar (necesitamos una query separada para el count)
+    count_query = db.query(Pipes)
+    if search and search.strip():
+        search_term = f"%{search.strip().lower()}%"
+        count_query = count_query.filter(
+            or_(
+                func.lower(Pipes.material).like(search_term),
+                func.lower(func.coalesce(Pipes.observations, '')).like(search_term)
+            )
+        )
+    total = count_query.count()
+    
+    # Aplicar paginación
+    pipes = query.order_by(Pipes.id_pipes.desc()).offset(offset).limit(limit).all()
+
+    # Si no hay resultados pero hay búsqueda, no es un error, solo no hay coincidencias
+    if not pipes and not search:
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "No hay tuberías registradas"))
+
+    result = []
+    for pipe, geojson in pipes:
+        coords = json.loads(geojson)["coordinates"]
+        result.append({
+            "id_pipes": pipe.id_pipes,
+            "material": pipe.material,
+            "diameter": pipe.diameter,
+            "status": pipe.status,
+            "size": pipe.size,
+            "installation_date": pipe.installation_date,
+            "coordinates": coords,
+            "observations": pipe.observations,
+            "created_at": pipe.created_at,
+            "updated_at": pipe.updated_at,
+            "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks]
+        })
+
+    return result, total
+
+def get_by_id(db: Session, pipe_id: int):
+    result = db.query(
+        Pipes,
+        func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")
+    ).options(joinedload(Pipes.tanks), joinedload(Pipes.connections)) \
+     .filter(Pipes.id_pipes == pipe_id).first()
+
+    if not result:
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "La tubería no existe"))
+
+    pipe, geojson = result
+    coords = json.loads(geojson)["coordinates"]
+    
+    # Obtener coordenadas de inicio y fin de la tubería (GeoJSON usa [lon, lat])
+    start_coord = coords[0] if len(coords) > 0 else None
+    end_coord = coords[-1] if len(coords) > 0 else None
+    
+    # Determinar qué conexiones son de inicio y fin basándose en las coordenadas
+    start_connection_id = None
+    end_connection_id = None
+    
+    # Si hay conexiones relacionadas, determinar cuál es inicio y cuál fin
+    if pipe.connections:
+        conn_list = list(pipe.connections)
+        
+        # Si hay exactamente 2 conexiones, asignarlas como inicio y fin
+        if len(conn_list) == 2:
+            # Intentar determinar por coordenadas si están disponibles
+            if start_coord and end_coord:
+                conn_data = []
+                for conn in conn_list:
+                    conn_lon = db.scalar(func.ST_X(conn.coordenates))
+                    conn_lat = db.scalar(func.ST_Y(conn.coordenates))
+                    conn_data.append({
+                        'id': conn.id_connection,
+                        'lon': conn_lon,
+                        'lat': conn_lat
+                    })
+                
+                # Calcular distancias a puntos de inicio y fin
+                distances = []
+                for conn in conn_data:
+                    start_dist = ((conn['lon'] - start_coord[0]) ** 2 + (conn['lat'] - start_coord[1]) ** 2) ** 0.5
+                    end_dist = ((conn['lon'] - end_coord[0]) ** 2 + (conn['lat'] - end_coord[1]) ** 2) ** 0.5
+                    distances.append({
+                        'id': conn['id'],
+                        'start_dist': start_dist,
+                        'end_dist': end_dist
+                    })
+                
+                # Asignar la más cercana al inicio como start, la más cercana al fin como end
+                if distances[0]['start_dist'] < distances[1]['start_dist']:
+                    start_connection_id = distances[0]['id']
+                    end_connection_id = distances[1]['id']
+                else:
+                    start_connection_id = distances[1]['id']
+                    end_connection_id = distances[0]['id']
+            else:
+                # Si no hay coordenadas, asignar directamente
+                start_connection_id = conn_list[0].id_connection
+                end_connection_id = conn_list[1].id_connection
+        elif len(conn_list) == 1:
+            # Si solo hay una conexión, asignarla como inicio
+            start_connection_id = conn_list[0].id_connection
+
+    return {
+        "id_pipes": pipe.id_pipes,
+        "material": pipe.material,
+        "diameter": pipe.diameter,
+        "status": pipe.status,
+        "size": pipe.size,
+        "installation_date": pipe.installation_date,
+        "coordinates": coords,  # 🔹 devuelve toda la línea
+        "observations": pipe.observations,
+        "created_at": pipe.created_at,
+        "updated_at": pipe.updated_at,
+        "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks],
+        "start_connection_id": start_connection_id,
+        "end_connection_id": end_connection_id,
+        "connections": [{"id_connection": c.id_connection} for c in pipe.connections]
+    }
+
+
+def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
+    # existing = db.query(Pipes).filter(Pipes.material == pipe_data.material).first()
+    # if existing:
+    #     raise HTTPException(status_code=409, detail=existence_response_dict(True, "La tubería ya existe"))
 
     try:
-        offset = (page - 1) * limit
-        if page < 1 or limit < 1:
-            raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
+        # Validar que coordinates tenga exactamente 2 puntos
+        if len(pipe_data.coordinates) != 2:
+            raise HTTPException(status_code=400, detail="Las coordenadas deben tener exactamente 2 puntos (inicio y fin)")
+
+        # Obtener coordenadas de conexiones si se proporcionan
+        final_coordinates = list(pipe_data.coordinates)
         
-        offset = (page - 1) * limit
-        pipes = db.query(
-            Pipes,
-            func.ST_X(Pipes.coordinates).label('longitude'),
-            func.ST_Y(Pipes.coordinates).label('latitude')
-        ).options(joinedload(Pipes.tanks)) \
-        .offset(offset).limit(limit).all()
-
-
-        if not pipes:
-            return success_response([])
-
-        pipes_response = []
-        for pipe, longitude, latitude in pipes:
-            pipe_response = PipesResponse(
-                id_pipes=pipe.id_pipes,
-                material=pipe.material,
-                diameter=pipe.diameter,
-                status=pipe.status,
-                size=pipe.size,
-                installation_date=pipe.installation_date,
-                latitude=latitude,
-                longitude=longitude,
-                observations=pipe.observations,
-                created_at=pipe.created_at,
-                updated_at=pipe.updated_at,
-                tanks=[TankSimple(id_tank=t.id_tank, name=t.name) for t in pipe.tanks]
-            )
-            
-            pipes_response.append(pipe_response.model_dump(mode="json"))
-
-        create_log(
-            db,
-            user_id=current_user.id_user,
-            action="READ",
-            entity="Pipes",
-            description=f"El usuario {current_user.user} accedió a la lista de tuberías"
-        )
-        return success_response(pipes_response)
-    
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener las tuberías: {str(e)}",
-            headers={"X-Error": f"Error al obtener las tuberías: {str(e)}"}
-        )
-@router.get('/{pipe_id}', response_model=PipesResponse)
-async def get_pipe_by_id(
-    pipe_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    try:
-        result = db.query(
-            Pipes,
-            func.ST_X(Pipes.coordinates).label('longitude'),
-            func.ST_Y(Pipes.coordinates).label('latitude')
-        ).options(joinedload(Pipes.tanks)) \
-        .filter(Pipes.id_pipes == pipe_id).first()
+        # Si hay start_connection_id, obtener sus coordenadas
+        if pipe_data.start_connection_id:
+            start_conn = db.query(Connection).filter(Connection.id_connection == pipe_data.start_connection_id).first()
+            if not start_conn:
+                raise HTTPException(status_code=404, detail="La conexión de inicio no existe")
+            start_lon = db.scalar(func.ST_X(start_conn.coordenates))
+            start_lat = db.scalar(func.ST_Y(start_conn.coordenates))
+            final_coordinates[0] = (start_lon, start_lat)
         
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=existence_response_dict(False, "La tubería no existe"),
-                headers={"X-Error": "La tubería no existe"}
-            )
-        
-        pipe, longitude, latitude = result
-        
-        pipe_response = PipesResponse(
-            id_pipes=pipe.id_pipes,
-            material=pipe.material,
-            diameter=pipe.diameter,
-            status=pipe.status,
-            size=pipe.size,
-            installation_date=pipe.installation_date,
-            latitude=latitude,
-            longitude=longitude,
-            observations=pipe.observations,
-            created_at=pipe.created_at,
-            updated_at=pipe.updated_at,
-            tanks=[{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks]
-        )
-        
-        create_log(
-            db,
-            user_id=current_user.id_user,
-            action="READ",
-            entity="Pipes",
-            description=f"El usuario {current_user.user} consultó la tubería {pipe.material} (ID: {pipe_id})"
-        )
-        return success_response(pipe_response.model_dump(mode="json"))
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener la tubería: {str(e)}",
-            headers={"X-Error": f"Error al obtener la tubería: {str(e)}"}
-        )
+        # Si hay end_connection_id, obtener sus coordenadas
+        if pipe_data.end_connection_id:
+            end_conn = db.query(Connection).filter(Connection.id_connection == pipe_data.end_connection_id).first()
+            if not end_conn:
+                raise HTTPException(status_code=404, detail="La conexión de fin no existe")
+            end_lon = db.scalar(func.ST_X(end_conn.coordenates))
+            end_lat = db.scalar(func.ST_Y(end_conn.coordenates))
+            final_coordinates[1] = (end_lon, end_lat)
 
-@router.post('', response_model=PipesResponse)
-async def create_pipes(
-    pipes_data: PipesBase,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-    ):
-    if db.query(Pipes).filter(Pipes.material == pipes_data.material).first():
-        raise HTTPException(
-            status_code=409,
-            detail=existence_response_dict(True, "La tubería ya existe"),
-            headers={"X-Error": "La tubería ya existe"}
-        )
-    
-    try: 
-        new_pipes = Pipes(
-            material = pipes_data.material,
-            diameter = pipes_data.diameter,
-            status = pipes_data.status,
-            size = pipes_data.size,
-            installation_date = pipes_data.installation_date,
-            coordinates=f"SRID=4326;POINT({pipes_data.longitude} {pipes_data.latitude})",
-            observations=pipes_data.observations,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
+        # Construir LINESTRING con los 2 puntos
+        coords_text = ", ".join([f"{lon} {lat}" for lon, lat in final_coordinates])
 
-        # Asignar los tanques seleccionados
-        for tank_id in pipes_data.tank_ids:
+        new_pipe = Pipes(
+        material=pipe_data.material,
+        diameter=pipe_data.diameter,
+        status=pipe_data.status,
+        size=pipe_data.size,
+        installation_date=pipe_data.installation_date,
+        coordinates=WKTElement(f"LINESTRING({coords_text})", srid=4326),
+        observations=pipe_data.observations,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+        )   
+
+        # Asociar tanques
+        for tank_id in pipe_data.tank_ids:
             tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
             if tank:
-                new_pipes.tanks.append(tank)
+                new_pipe.tanks.append(tank)
 
-        db.add(new_pipes)
+        # Asociar conexiones si se proporcionaron
+        if pipe_data.start_connection_id:
+            start_conn = db.query(Connection).filter(Connection.id_connection == pipe_data.start_connection_id).first()
+            if start_conn:
+                new_pipe.connections.append(start_conn)
+        
+        if pipe_data.end_connection_id:
+            end_conn = db.query(Connection).filter(Connection.id_connection == pipe_data.end_connection_id).first()
+            if end_conn:
+                # Evitar duplicados si start y end son la misma conexión
+                if end_conn not in new_pipe.connections:
+                    new_pipe.connections.append(end_conn)
+
+        db.add(new_pipe)
         db.commit()
-        db.refresh(new_pipes)
-
-        pipes_response = PipesResponseCreate(
-            id_pipes=new_pipes.id_pipes,
-            material=new_pipes.material,
-            diameter=new_pipes.diameter,
-            status=new_pipes.status,
-            size=new_pipes.size,
-            installation_date=new_pipes.installation_date,
-            latitude=pipes_data.latitude,  
-            longitude=pipes_data.longitude,  
-            observations=new_pipes.observations,
-            created_at=new_pipes.created_at,
-            updated_at=new_pipes.updated_at,
-            tanks=[TankSimple(id_tank=t.id_tank, name=t.name) for t in new_pipes.tanks]
-        )
+        db.refresh(new_pipe)
 
         create_log(
             db,
             user_id=current_user.id_user,
             action="CREATE",
-            entity= "Tubería",
-            entity_id= new_pipes.id_pipes,
-            description= f"El usuario {current_user.user} creó una nueva tubeía"
-        )
-        return success_response(pipes_response.model_dump(mode="json"))
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=error_response(f"Error al crear la tubería: {str(e)}"). body.decode(),
-            headers={"X-Error": f"Error al crear la tubería: {str(e)}"}
-        )
-    
-@router.put('/{pipe_id}', response_model=PipesResponse)
-async def update_pipe(
-    pipe_id: int,
-    pipe_data: PipesUpdate,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
-    # Buscar tubería
-    pipe = db.query(Pipes).filter(Pipes.id_pipes == pipe_id).first()
-    if not pipe:
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "La tubería no existe"),
-            headers={"X-Error": "La tubería no existe"}
+            entity="Pipes",
+            entity_id=new_pipe.id_pipes,
+            description=f"El usuario {current_user.user} creó la tubería {new_pipe.id_pipes}"
         )
 
-    if pipe_data.material and pipe_data.material != pipe.material:
-        existing_pipe = db.query(Pipes).filter(Pipes.material == pipe_data.material).first()
-        if existing_pipe:
-            raise HTTPException(
-                status_code=409,
-                detail=existence_response_dict(True, "El material de la tubería ya existe"),
-                headers={"X-Error": "El material de la tubería ya existe"}
-            )
-    
+        return {
+            "id_pipes": new_pipe.id_pipes,
+            "material": new_pipe.material,
+            "diameter": new_pipe.diameter,
+            "status": new_pipe.status,
+            "size": new_pipe.size,
+            "installation_date": new_pipe.installation_date,
+            "observations": new_pipe.observations,
+            "created_at": new_pipe.created_at,
+            "updated_at": new_pipe.updated_at,
+            "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in new_pipe.tanks],
+            "coordinates": final_coordinates
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear la tubería: {str(e)}")
+
+
+
+def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: UserLogin):
+    pipe = db.query(Pipes).filter(Pipes.id_pipes == pipe_id).first()
+    if not pipe:
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "La tubería no existe"))
+
     try:
-        # Actualizar solo los campos no nuloss
-        if pipe_data.material is not None:
-            pipe.material = pipe_data.material
-            
-        if pipe_data.diameter is not None:
-            pipe.diameter = pipe_data.diameter
-            
-        if pipe_data.status is not None:
-            pipe.status = pipe_data.status
-            
-        if pipe_data.size is not None:
-            pipe.size = pipe_data.size
-            
-        if pipe_data.installation_date is not None:
-            pipe.installation_date = pipe_data.installation_date
+        data = pipe_data.dict(exclude_unset=True)
+
+        # Obtener coordenadas actuales si no se proporcionan nuevas
+        current_coords = None
+        if "coordinates" not in data:
+            geometry = db.query(func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")) \
+                .filter(Pipes.id_pipes == pipe_id) \
+                .scalar()
+            if geometry:
+                current_coords = json.loads(geometry)["coordinates"]
         
-        if pipe_data.tank_ids is not None:
+        # Manejar coordenadas y conexiones
+        final_coordinates = data.get("coordinates", current_coords)
+        
+        # Si se proporcionan connection_ids, obtener sus coordenadas
+        if "start_connection_id" in data and data["start_connection_id"]:
+            start_conn = db.query(Connection).filter(Connection.id_connection == data["start_connection_id"]).first()
+            if not start_conn:
+                raise HTTPException(status_code=404, detail="La conexión de inicio no existe")
+            start_lon = db.scalar(func.ST_X(start_conn.coordenates))
+            start_lat = db.scalar(func.ST_Y(start_conn.coordenates))
+            if final_coordinates:
+                final_coordinates[0] = (start_lon, start_lat)
+            else:
+                # Si no hay coordenadas actuales, necesitamos obtener el punto final
+                geometry = db.query(func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")) \
+                    .filter(Pipes.id_pipes == pipe_id) \
+                    .scalar()
+                if geometry:
+                    current_coords = json.loads(geometry)["coordinates"]
+                    final_coordinates = [(start_lon, start_lat), current_coords[1] if len(current_coords) > 1 else (start_lon, start_lat)]
+        
+        if "end_connection_id" in data and data["end_connection_id"]:
+            end_conn = db.query(Connection).filter(Connection.id_connection == data["end_connection_id"]).first()
+            if not end_conn:
+                raise HTTPException(status_code=404, detail="La conexión de fin no existe")
+            end_lon = db.scalar(func.ST_X(end_conn.coordenates))
+            end_lat = db.scalar(func.ST_Y(end_conn.coordenates))
+            if final_coordinates:
+                final_coordinates[1] = (end_lon, end_lat)
+            else:
+                # Si no hay coordenadas actuales, necesitamos obtener el punto inicial
+                geometry = db.query(func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")) \
+                    .filter(Pipes.id_pipes == pipe_id) \
+                    .scalar()
+                if geometry:
+                    current_coords = json.loads(geometry)["coordinates"]
+                    final_coordinates = [current_coords[0] if len(current_coords) > 0 else (end_lon, end_lat), (end_lon, end_lat)]
+
+        # Validar que tengamos exactamente 2 puntos
+        if final_coordinates and len(final_coordinates) != 2:
+            raise HTTPException(status_code=400, detail="Las coordenadas deben tener exactamente 2 puntos (inicio y fin)")
+
+        # Actualizar coordenadas si hay cambios
+        if final_coordinates:
+            coords_text = ", ".join([f"{lon} {lat}" for lon, lat in final_coordinates])
+            pipe.coordinates = WKTElement(f"LINESTRING({coords_text})", srid=4326)
+            data.pop("coordinates", None)
+
+        # Actualizar tanques
+        if "tank_ids" in data:
             pipe.tanks.clear()
-            for tank_id in pipe_data.tank_ids:
+            for tank_id in data["tank_ids"]:
                 tank = db.query(Tank).filter(Tank.id_tank == tank_id).first()
                 if tank:
                     pipe.tanks.append(tank)
+            data.pop("tank_ids", None)
 
-            
-        if pipe_data.latitude is not None and pipe_data.longitude is not None:
-            pipe.coordinates = f"SRID=4326;POINT({pipe_data.longitude} {pipe_data.latitude})"
-        elif pipe_data.latitude is not None or pipe_data.longitude is not None:
-            raise HTTPException(
-                status_code=400,
-                detail="Ambos campos latitude y longitude deben ser proporcionados juntos.",
-                headers={"X-Error": "Campos de coordenadas incompletos"}
-            )
-            
-        if pipe_data.observations is not None:
-            pipe.observations = pipe_data.observations
-            
+        # Actualizar conexiones si se proporcionan
+        if "start_connection_id" in data or "end_connection_id" in data:
+            pipe.connections.clear()
+            if "start_connection_id" in data and data["start_connection_id"]:
+                start_conn = db.query(Connection).filter(Connection.id_connection == data["start_connection_id"]).first()
+                if start_conn:
+                    pipe.connections.append(start_conn)
+            if "end_connection_id" in data and data["end_connection_id"]:
+                end_conn = db.query(Connection).filter(Connection.id_connection == data["end_connection_id"]).first()
+                if end_conn:
+                    # Evitar duplicados si start y end son la misma conexión
+                    if end_conn not in pipe.connections:
+                        pipe.connections.append(end_conn)
+            data.pop("start_connection_id", None)
+            data.pop("end_connection_id", None)
+
+        # Actualizar otros campos
+        for field, value in data.items():
+            setattr(pipe, field, value)
+
         pipe.updated_at = datetime.now()
-        
         db.commit()
         db.refresh(pipe)
-        
-        # Para obtener las coordenadas
-        result = db.query(
-            Pipes,
-            func.ST_X(Pipes.coordinates).label('longitude'),
-            func.ST_Y(Pipes.coordinates).label('latitude')
-        ).filter(Pipes.id_pipes == pipe.id_pipes).first()
-        
-        pipe, longitude, latitude = result
-        
-        pipe_response = PipesResponse(
-            id_pipes=pipe.id_pipes,
-            material=pipe.material,
-            diameter=pipe.diameter,
-            status=pipe.status,
-            size=pipe.size,
-            installation_date=pipe.installation_date,
-            latitude=latitude,
-            longitude=longitude,
-            observations=pipe.observations,
-            created_at=pipe.created_at,
-            updated_at=pipe.updated_at,
-            tanks=[{"id_tank": tank.id_tank, "name": tank.name} for tank in pipe.tanks]
-        )
-        
+
+        # Obtener coordenadas actualizadas en formato GeoJSON
+        geometry = db.query(func.ST_AsGeoJSON(Pipes.coordinates).label("geometry")) \
+            .filter(Pipes.id_pipes == pipe.id_pipes) \
+            .scalar()
+        coords = json.loads(geometry)["coordinates"] if geometry else []
+
         create_log(
             db,
             user_id=current_user.id_user,
-            action="PUT",
-            entity="Pipes",
+            action="UPDATE",
+            entity="Pipe",
+            entity_id=pipe.id_pipes,
             description=f"El usuario {current_user.user} actualizó la tubería {pipe.id_pipes}"
         )
-        return success_response(pipe_response.model_dump(mode="json"))
 
+        return {
+            "id_pipes": pipe.id_pipes,
+            "material": pipe.material,
+            "diameter": pipe.diameter,
+            "status": pipe.status,
+            "size": pipe.size,
+            "installation_date": pipe.installation_date,
+            "coordinates": coords,
+            "observations": pipe.observations,
+            "created_at": pipe.created_at,
+            "updated_at": pipe.updated_at,
+            "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in pipe.tanks]
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al actualizar la tubería: {str(e)}")
-    
-@router.delete('/{pipe_id}', response_model=PipesResponse)
-async def delete_pipe(
-    pipe_id: int,
-    db: Session = Depends(get_db),
-    current_user: UserLogin = Depends(get_current_active_user)
-):
+
+
+
+def toggle_state(db: Session, pipe_id: int,current_user: UserLogin):
     pipe = db.query(Pipes).filter(Pipes.id_pipes == pipe_id).first()
     if not pipe:
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "La tubería no existe"),
-            headers={"X-Error": "La tubería no existe"}
-        )
-        
-    try:
-        pipe.status = not pipe.status
-        pipe.updated_at = datetime.now()
-        db.commit()
-        db.refresh(pipe)
-        
-        action_description = "activó" if pipe.status else "desactivó"
-        create_log(
-            db,
-            user_id=current_user.id_user,
-            action="DELETE",
-            entity="Pipes",
-            description=f"El usuario {current_user.user} {action_description} la tubería {pipe.id_pipes}"
-        )   
-        
-        status_message = "Tubería activada exitosamente" if pipe.status else "Tubería desactivada exitosamente"
-        return success_response(status_message)
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=error_response(f"Error al eliminar la tubería: {str(e)}").body.decode(),
-            headers={"X-Error": f"Error al eliminar la tubería: {str(e)}"}
-        )
+        raise HTTPException(status_code=404, detail=existence_response_dict(False, "La tubería no existe"))
+
+    pipe.status = not pipe.status
+    pipe.updated_at = datetime.now()
+
+    db.commit()
+    db.refresh(pipe)
+    state = ""
+    if pipe.status is False:
+        state = "inactivo"
+    else: 
+        state = "activo" 
+    create_log(
+        db,
+        user_id=current_user.id_user,
+        action="TOGGLE",
+        entity="Pipes",
+        entity_id=pipe.id_pipes,
+        description=f"El usuario {current_user.user} cambió el estado de la tubería {pipe.id_pipes} a {state}"
+    )
+
+    return pipe

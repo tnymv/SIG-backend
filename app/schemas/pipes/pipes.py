@@ -1,17 +1,27 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
+from decimal import Decimal
+from pydantic import Field
 
 class PipesBase(BaseModel):
     material: str
-    diameter: int
+    diameter: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     status: bool = True
-    size: int
+    size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
-    observations: str
-    latitude: float
-    longitude: float
-    tank_ids: Optional[List[int]] = [] 
+    observations: Optional[str] = None
+    coordinates: List[Tuple[float, float]]
+    tank_ids: Optional[List[int]] = []
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
+
+    @field_validator('coordinates')
+    @classmethod
+    def validate_coordinates(cls, v):
+        if len(v) != 2:
+            raise ValueError('Las coordenadas deben tener exactamente 2 puntos (inicio y fin)')
+        return v 
 
 class TankSimple(BaseModel):
     id_tank: int
@@ -20,44 +30,39 @@ class TankSimple(BaseModel):
 class PipesResponse(BaseModel):
     id_pipes: int
     material: str
-    diameter: int
+    diameter: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     status: bool
-    size: int
+    size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
-    latitude: float
-    longitude: float
-    observations: str
+    coordinates: List[Tuple[float, float]]
+    observations: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     tanks: List[TankSimple] = []
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
 
     class Config:
         from_attributes = True
 
-class PipesResponseCreate(BaseModel):
-    id_pipes: int
-    material: str
-    diameter: int
-    status: bool
-    size: int
-    installation_date:datetime
-    latitude: float
-    longitude: float
-    observations: str
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
+class PipesResponseCreate(PipesBase):
+    pass
 
 class PipesUpdate(BaseModel):
     material: Optional[str] = None
-    diameter: Optional[int] = None
+    diameter: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
     status: Optional[bool] = None
-    size: Optional[int] = None
+    size: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
     installation_date: Optional[datetime] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    coordinates: Optional[List[Tuple[float, float]]] = None
     observations: Optional[str] = None
-    updated_at: datetime = datetime.now()
     tank_ids: Optional[List[int]] = None
+    start_connection_id: Optional[int] = None
+    end_connection_id: Optional[int] = None
+
+    @field_validator('coordinates')
+    @classmethod
+    def validate_coordinates(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError('Las coordenadas deben tener exactamente 2 puntos (inicio y fin)')
+        return v

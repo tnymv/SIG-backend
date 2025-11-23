@@ -4,7 +4,7 @@ from datetime import datetime
 import sys
 import os
 
-# Agregar ruta para imports
+# ruta para imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from app.schemas.data_upload.data_upload import Data_uploadCreate
 
@@ -19,8 +19,8 @@ class ExcelProcessor:
         try:
             # Leer Excel saltando encabezados
             df = pd.read_excel(file_content, skiprows=8)
-            print(f"📊 Excel procesado: {len(df)} filas encontradas")
-            print(f"📝 Columnas detectadas: {list(df.columns)}")
+            print(f" Excel procesado: {len(df)} filas encontradas")
+            print(f"Columnas detectadas: {list(df.columns)}")
             
             # Procesar cada fila
             for index, row in df.iterrows():
@@ -36,7 +36,7 @@ class ExcelProcessor:
                         "date": datetime.now(),
                         "hour": datetime.now().time(),
                         "seriereport": "R00809001.rpt",
-                        "user": self.current_user.user if self.current_user else "API_USER",
+                        "user": self._get_cell_value(row, 'USUARIO', "SYSTEM"),
                         "status": True,
                         # Datos del Excel
                         "identifier": self._get_cell_value(row, 'IDENTIFICADOR', f"AUTO-{index+9}"),
@@ -50,19 +50,19 @@ class ExcelProcessor:
                     
                     # Crear objeto Data_uploadCreate
                     self.valid_data.append(Data_uploadCreate(**data_dict))
-                    print(f"✅ Fila {index + 9} procesada: {data_dict['taxpayer']}")
+                    print(f"Fila {index + 9} procesada: {data_dict['taxpayer']}")
                     
                 else:
                     self.errors.extend(row_errors)
-                    print(f"❌ Errores en fila {index + 9}: {row_errors}")
+                    print(f"Errores en fila {index + 9}: {row_errors}")
             
-            print(f"📈 Procesamiento completado: {len(self.valid_data)} válidos, {len(self.errors)} errores")
+            print(f" Procesamiento completado: {len(self.valid_data)} válidos, {len(self.errors)} errores")
             return self.valid_data, self.errors
             
         except Exception as e:
             error_msg = f"Error al procesar archivo Excel: {str(e)}"
             self.errors.append(error_msg)
-            print(f"❌ {error_msg}")
+            print(f"{error_msg}")
             return [], self.errors
     
     def _validate_row(self, row: pd.Series, row_num: int) -> List[str]:
@@ -110,17 +110,8 @@ class ExcelProcessor:
         except (ValueError, TypeError):
             return 0.0
 
-# Función principal que usará el controlador
+# funcion que usa el controlador
 def process_excel_from_content(file_content: bytes, current_user=None) -> Tuple[List[Data_uploadCreate], List[str]]:
-    """
-    Procesa contenido de Excel y retorna datos listos para la BD
-    
-    Args:
-        file_content: Bytes del archivo Excel
-        current_user: Usuario actual (opcional)
-    
-    Returns:
-        Tuple[List[Data_uploadCreate], List[str]]: Datos válidos y lista de errores
-    """
+  
     processor = ExcelProcessor(current_user)
     return processor.process_excel_content(file_content)

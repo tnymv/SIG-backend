@@ -11,29 +11,16 @@ class FilesBase(BaseModel):
     total: int
     status: bool = True
 
-class FilesResponse(BaseModel):
+class FilesResponse(FilesBase):
     id: int
-    taxpayer: str
-    cologne: str
-    cat_service: str
-    canon: int
-    excess: float
-    total: int
-    status: bool
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
     
     class Config: 
         from_attributes = True
 
-class FilesCreate(BaseModel):
-    
-    taxpayer: str
-    cologne: str
-    cat_service: str
-    canon: int
-    excess: float
-    total: int
+class FilesCreate(FilesBase):
+    pass
     
 class FilesUpdate(BaseModel):
     taxpayer: Optional[str] = None

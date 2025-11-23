@@ -1,8 +1,8 @@
 #models/log/logs.py
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from datetime import datetime 
-from app.db.database import Base
 from sqlalchemy.orm import relationship
+from app.db.database import Base
+from datetime import datetime 
 
 class Logs(Base): 
     __tablename__ = "logs"

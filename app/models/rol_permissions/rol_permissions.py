@@ -1,7 +1,6 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from datetime import datetime
+from sqlalchemy import Column, Integer, ForeignKey, DateTime
 from app.db.database import Base
-from sqlalchemy.orm import relationship
+from datetime import datetime
 
 class Rol_permissions(Base):
     __tablename__ = "rol_permissions"
