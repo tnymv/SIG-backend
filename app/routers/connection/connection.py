@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
-from app.schemas.connections.connection import ConnectionCreate, ConnectionUpdate, ConnectionResponse, ConnectionStatus
+from app.schemas.connections.connection import ConnectionCreate, ConnectionUpdate, ConnectionResponse
 from app.controllers.Connection.connections import get_all, get_by_id, create, update, toggle_state
 from app.utils.response import success_response, error_response
 from typing import List, Optional
@@ -15,14 +15,11 @@ async def list_connections(
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(10, ge=1, le=100, description="Límite de resultados por página"),
     search: Optional[str] = Query(None, description="Término de búsqueda para filtrar por material, tipo, presión, instalador o descripción"),
-    status: Optional[ConnectionStatus] = Query(None, description="Filtrar por estado: SIN INICIAR, EN CURSO, FINALIZADO"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        # Convertir el enum a string para pasarlo al controlador
-        status_str = status.value if status else None
-        connections, total = get_all(db, page, limit, search, status_str)
+        connections, total = get_all(db, page, limit, search)
         total_pages = (total + limit - 1) // limit
         next_page = page + 1 if page < total_pages else None
         prev_page = page - 1 if page > 1 else None

@@ -3,12 +3,6 @@ from datetime import datetime
 from typing import Optional, List
 from decimal import Decimal
 from pydantic import Field
-from enum import Enum
-
-class ConnectionStatus(str, Enum):
-    SIN_INICIAR = "SIN INICIAR"
-    EN_CURSO = "EN CURSO"
-    FINALIZADO = "FINALIZADO"
 
 class ConnectionBase(BaseModel):
     latitude: float
@@ -21,7 +15,6 @@ class ConnectionBase(BaseModel):
     installed_date: datetime
     installed_by: Optional[str] = None
     description: Optional[str] = None
-    status: ConnectionStatus = ConnectionStatus.SIN_INICIAR
     active: bool = True
 
 class ConnectionCreate(ConnectionBase):
@@ -38,7 +31,6 @@ class ConnectionUpdate(BaseModel):
     installed_date: Optional[datetime] = None
     installed_by: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[ConnectionStatus] = None
     active: Optional[bool] = None
     pipe_ids: Optional[List[int]] = []
 
@@ -54,7 +46,6 @@ class ConnectionResponse(BaseModel):
     installed_date: datetime
     installed_by: Optional[str]
     description: Optional[str]
-    status: ConnectionStatus
     active: bool
     created_at: datetime
     updated_at: datetime

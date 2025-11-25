@@ -12,7 +12,7 @@ from app.schemas.user.user import UserLogin
 from app.models.pipes.pipes import Pipes
 from app.utils.logger import create_log
 
-def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str] = None, status: Optional[str] = None):
+def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
@@ -41,10 +41,6 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             pass
         
         query = query.filter(or_(*search_filters))
-    
-    # Filtrar por status si se proporciona
-    if status:
-        query = query.filter(Connection.status == status)
 
     count_query = db.query(Connection)
     if search and search.strip():
@@ -65,19 +61,12 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
         
         count_query = count_query.filter(or_(*search_filters))
     
-    # Aplicar filtro de status también al count_query
-    if status:
-        count_query = count_query.filter(Connection.status == status)
-    
     total = count_query.count()
     
     connections = query.order_by(Connection.id_connection.desc()).offset(offset).limit(limit).all()
 
-    if not connections and not search:
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "No se encontraron conexiones")
-        )
+    # No lanzar error si no hay conexiones - simplemente devolver lista vacía
+    # Esto es válido cuando no hay datos en la BD o cuando los filtros no coinciden
 
     connection_response = []
 
@@ -94,7 +83,6 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             "installed_date": conn.installed_date,
             "installed_by": conn.installed_by,
             "description": conn.description,
-            "status": conn.status,
             "active": conn.active,
             "created_at": conn.created_at,
             "updated_at": conn.updated_at,
@@ -136,7 +124,6 @@ def get_by_id(db: Session, id_connection: int):
         "installed_date": conn.installed_date,
         "installed_by": conn.installed_by,
         "description": conn.description,
-        "status": conn.status,
         "active": conn.active,
         "created_at": conn.created_at,
         "updated_at": conn.updated_at,
@@ -161,7 +148,6 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=data.installed_date,
             installed_by=current_user.user,
             description=data.description,
-            status=data.status.value if hasattr(data.status, 'value') else data.status,
             active=True,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -197,7 +183,6 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=new_connection.installed_date,
             installed_by=new_connection.installed_by,
             description=new_connection.description,
-            status=new_connection.status,
             active=new_connection.active,
             created_at=new_connection.created_at,
             updated_at=new_connection.updated_at,
@@ -259,7 +244,6 @@ def update(db: Session, id_connection: int, data, current_user: UserLogin):
             "installed_date": connection.installed_date,
             "installed_by": connection.installed_by,
             "description": connection.description,
-            "status": connection.status,
             "active": connection.active,
             "created_at": connection.created_at,
             "updated_at": connection.updated_at,

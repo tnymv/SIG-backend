@@ -1,12 +1,19 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from enum import Enum
+
+class InterventionStatus(str, Enum):
+    SIN_INICIAR = "SIN INICIAR"
+    EN_CURSO = "EN CURSO"
+    FINALIZADO = "FINALIZADO"
 
 class InterventionsBase(BaseModel):
     description: str
     active: bool
     start_date: datetime
     end_date: datetime
+    status: InterventionStatus = InterventionStatus.SIN_INICIAR
     photography: list[str] = []
 
 class InterventionsResponse(InterventionsBase):
@@ -27,5 +34,6 @@ class InterventionsUpdate(BaseModel):
     active: Optional[bool] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    status: Optional[InterventionStatus] = None
     photography: list[str] = []
     updated_at: Optional[datetime] = None
