@@ -88,7 +88,7 @@ async def toggle_pipe_state(
 ):
     try:
         toggle_pipe = toggle_state(db, id_pipe,current_user)
-        action = "activó" if toggle_pipe.status == 1 else "inactivó"
+        action = "activó" if toggle_pipe.active else "inactivó"
         return success_response({
             "message": f"Se {action} la tubería {toggle_pipe.material}, correctamente.",
         })

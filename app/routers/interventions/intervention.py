@@ -97,7 +97,7 @@ async def toggle_intervention_state(
 ):
     try:
         toggle_intervention = toggle_state(db, intervention_id, current_user)
-        action = "activó" if toggle_intervention.status else "desactivó"
+        action = "activó" if toggle_intervention.active else "desactivó"
         return success_response(
             {"message": f"Se {action} la intervención correctamente."},
             f"Intervención {action} correctamente"

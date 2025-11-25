@@ -11,6 +11,6 @@ class TypeEmployee(Base):
     description = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    state = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     
     employees = relationship("Employee", back_populates="type_employee")

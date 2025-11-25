@@ -11,6 +11,6 @@ class Files(Base):
     canon = Column(Integer, index=True, nullable=False)
     excess = Column(Float, nullable=False)
     total = Column(Integer, index=True, nullable=False)
-    status = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

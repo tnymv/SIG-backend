@@ -62,7 +62,7 @@ def get_by_id(db: Session, rol_id: int):
         "id_rol": rol.id_rol,
         "name": rol.name,
         "description": rol.description,
-        "status": rol.status,
+        "active": rol.active,
         "created_at": rol.created_at.isoformat() if rol.created_at else None,
         "updated_at": rol.updated_at.isoformat() if rol.updated_at else None,
         "permission_ids": permisos_asignados,
@@ -71,7 +71,7 @@ def get_by_id(db: Session, rol_id: int):
                 "id_permissions": perm.id_permissions,
                 "name": perm.name,
                 "description": perm.description,
-                "status": perm.status
+                "active": perm.active
             }
             for perm in rol.permissions
         ]
@@ -91,7 +91,7 @@ def create(db: Session, data: RolCreate,current_user: UserLogin):
     new_rol = Rol(
         name=data.name,
         description=data.description,
-        status=data.status,
+        active=data.active,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -146,8 +146,8 @@ def update(db: Session, rol_id: int, data: RolUpdate, current_user: UserLogin):
     if data.description is not None:
         rol.description = data.description
     
-    if data.status is not None:
-        rol.status = data.status
+    if data.active is not None:
+        rol.active = data.active
     
     # Actualizar permisos si se proporcionan (incluso si es una lista vacía)
     if data.permission_ids is not None:
@@ -208,7 +208,7 @@ def update(db: Session, rol_id: int, data: RolUpdate, current_user: UserLogin):
 
 def get_permissions_grouped(db: Session) -> Dict[str, List[Dict]]:
     """Obtiene todos los permisos activos agrupados por categoría"""
-    permisos = db.query(Permissions).filter(Permissions.status == True).all()
+    permisos = db.query(Permissions).filter(Permissions.active == True).all()
     
     # Mapeo de prefijos a categorías
     categoria_map = {
@@ -240,7 +240,7 @@ def get_permissions_grouped(db: Session) -> Dict[str, List[Dict]]:
                 "id_permissions": permiso.id_permissions,
                 "name": permiso.name,
                 "description": permiso.description,
-                "status": permiso.status
+                "active": permiso.active
             })
     
     return grouped

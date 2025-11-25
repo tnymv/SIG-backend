@@ -4,7 +4,7 @@ from typing import Optional
 
 class InterventionsBase(BaseModel):
     description: str
-    status: bool
+    active: bool
     start_date: datetime
     end_date: datetime
     photography: list[str] = []
@@ -24,7 +24,7 @@ class InterventionsCreate(InterventionsBase):
     
 class InterventionsUpdate(BaseModel):
     description: Optional[str] = None
-    status: Optional[bool] = None
+    active: Optional[bool] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     photography: list[str] = []

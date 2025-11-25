@@ -75,7 +75,7 @@ def create(db: Session, employee_data: EmployeeCreate, current_user: UserLogin):
             first_name=employee_data.first_name,
             last_name=employee_data.last_name,
             phone_number=employee_data.phone_number,
-            state=employee_data.state,
+            active=employee_data.active,
             created_at=datetime.now(),
             updated_at=datetime.now()
     )
@@ -113,13 +113,13 @@ def update(db: Session, employee_id: int, data: EmployeeUpdate, current_user: Us
 
 def toggle_state(db: Session, employee_id: int, current_user: UserLogin):
     employee = get_by_id(db, employee_id)
-    employee.state = not employee.state
+    employee.active = not employee.active
     employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(employee)
     
     status = ""
-    if employee.state is False:
+    if employee.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

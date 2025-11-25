@@ -19,32 +19,32 @@ def get_dashboard_stats(db: Session):
     try:
         # 1. Contar usuarios activos
         active_users = db.query(func.count(Username.id_user)).filter(
-            Username.status == True
+            Username.active == True
         ).scalar() or 0
 
         # 2. Contar empleados activos
         active_employees = db.query(func.count(Employee.id_employee)).filter(
-            Employee.state == True
+            Employee.active == True
         ).scalar() or 0
 
         # 3. Contar tanques activos
         active_tanks = db.query(func.count(Tank.id_tank)).filter(
-            Tank.state == True
+            Tank.active == True
         ).scalar() or 0
 
         # 4. Contar tuberías activas
         active_pipes = db.query(func.count(Pipes.id_pipes)).filter(
-            Pipes.status == True
+            Pipes.active == True
         ).scalar() or 0
 
         # 5. Contar conexiones activas
         active_connections = db.query(func.count(Connection.id_connection)).filter(
-            Connection.state == True
+            Connection.active == True
         ).scalar() or 0
 
         # 6. Contar intervenciones activas
         active_interventions = db.query(func.count(Interventions.id_interventions)).filter(
-            Interventions.status == True
+            Interventions.active == True
         ).scalar() or 0
 
         # 7. Contar intervenciones por tipo de entidad
@@ -57,7 +57,7 @@ def get_dashboard_stats(db: Session):
             Interventions,
             Intervention_entities.d_interventions == Interventions.id_interventions
         ).filter(
-            Interventions.status == True
+            Interventions.active == True
         ).first()
 
         # Manejar caso donde no hay intervenciones

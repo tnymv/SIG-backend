@@ -41,7 +41,7 @@ def create(db: Session, data,current_user: UserLogin):
         canon=data.canon,
         excess=data.excess,
         total=data.total,
-        status=True,
+        active=True,
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
@@ -90,7 +90,7 @@ def toggle_state(db: Session, file_id: int, current_user: UserLogin):
     if not file:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "El archivo no existe"))
 
-    file.status = not file.status
+    file.active = not file.active
     file.updated_at = datetime.now()
     db.commit()
     db.refresh(file)
@@ -101,7 +101,7 @@ def toggle_state(db: Session, file_id: int, current_user: UserLogin):
         action="UPDATE",
         entity="Files",
         entity_id=file.id,
-        description=f"El usuario {current_user.user} {'activó' if file.status else 'desactivó'} el archivo {file.taxpayer} {file.cologne}"
+        description=f"El usuario {current_user.user} {'activó' if file.active else 'desactivó'} el archivo {file.taxpayer} {file.cologne}"
     )
 
     return file

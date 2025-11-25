@@ -55,18 +55,18 @@ async def read_users_me(
             "id_rol": current_user.rol.id_rol,
             "name": current_user.rol.name,
             "description": current_user.rol.description,
-            "status": current_user.rol.status
+            "active": current_user.rol.active
         }
     
     permissions = []
     if current_user.rol and current_user.rol.permissions:
-        active_permissions = [perm for perm in current_user.rol.permissions if perm.status]
+        active_permissions = [perm for perm in current_user.rol.permissions if perm.active]
         permissions = [
             {
                 "id_permissions": perm.id_permissions,
                 "name": perm.name,
                 "description": perm.description,
-                "status": perm.status
+                "active": perm.active
             }
             for perm in active_permissions
         ]
@@ -78,7 +78,7 @@ async def read_users_me(
         email=current_user.email,
         employee_id=current_user.employee_id,
         rol_id=current_user.rol_id,
-        status=current_user.status,
+        active=current_user.active,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
         rol=rol_info,

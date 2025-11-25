@@ -87,7 +87,7 @@ async def toggle_file_state(
 ):
     try:
         file = toggle_state(db, file_id, current_user)
-        action = "activó" if file.status else "desactivó"
+        action = "activó" if file.active else "desactivó"
         return success_response({
             "message": f"El usuario {current_user.user} {action} el archivo {file.taxpayer} {file.cologne} correctamente."
         })

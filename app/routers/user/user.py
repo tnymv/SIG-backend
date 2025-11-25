@@ -88,7 +88,7 @@ async def toggle_user(
 ):
     try:
         toggle_user = toggle_state(db, id_user,current_user)
-        action = "activo" if toggle_user.status else "inactivo"
+        action = "activo" if toggle_user.active else "inactivo"
         return success_response({
             "message": f"Se {action} el usuario {toggle_user.user}, correctamente.",
         })

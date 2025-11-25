@@ -7,7 +7,7 @@ class EmployeeBase(BaseModel):
     first_name: str
     last_name: str
     phone_number: str = None
-    state: bool
+    active: bool
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -16,7 +16,7 @@ class EmployeeUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone_number: Optional[str] = None
-    state: Optional[bool] = None
+    active: Optional[bool] = None
     id_type_employee: Optional[int] = None
 
 class EmployeeResponse(EmployeeBase):

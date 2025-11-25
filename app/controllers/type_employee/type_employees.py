@@ -64,7 +64,7 @@ def create(db: Session, data: TypeEmployeeCreate,current_user: UserLogin):
     new_type_employee = TypeEmployee(
         name=data.name,
         description=data.description,
-        state=data.state,
+        active=data.active,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -102,12 +102,12 @@ def update(db: Session, id_type_employee: int, data: TypeEmployeeUpdate,current_
 
 def toggle_state(db: Session, id_type_employee: int,current_user: UserLogin):
     type_employee = get_by_id(db, id_type_employee)
-    type_employee.state = not type_employee.state
+    type_employee.active = not type_employee.active
     type_employee.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(type_employee)
     status = ""
-    if type_employee.state is False:
+    if type_employee.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

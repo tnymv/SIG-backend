@@ -17,7 +17,8 @@ class Connection(Base):
     installed_date = Column(DateTime)              
     installed_by = Column(String(100))
     description = Column(Text)
-    state = Column(Boolean, default=True)
+    status = Column(String(20), server_default="SIN INICIAR", nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

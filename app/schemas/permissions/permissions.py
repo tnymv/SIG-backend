@@ -5,7 +5,7 @@ from typing import Optional
 class PermissionsBase(BaseModel):
     name: str
     description: str
-    status: bool
+    active: bool
 
 class PermissionsCreate(PermissionsBase):
     pass
@@ -13,7 +13,7 @@ class PermissionsCreate(PermissionsBase):
 class PermissionsUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[bool] = None
+    active: Optional[bool] = None
 
 class PermissionsResponse(PermissionsBase):
     id_permissions: int

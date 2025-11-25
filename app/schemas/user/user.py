@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     email: EmailStr
     employee_id: int
     rol_id: int
-    status: bool
+    active: bool
 
 class UserCreate(UserBase):
     pass
@@ -21,13 +21,13 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     employee_id: Optional[int] = None
     rol_id: Optional[int] = None
-    status: Optional[int] = None
+    active: Optional[bool] = None
 
 class PermissionInfo(BaseModel):
     id_permissions: int
     name: str
     description: str
-    status: bool
+    active: bool
 
     class Config:
         from_attributes = True
@@ -37,7 +37,7 @@ class RolInfo(BaseModel):
     id_rol: int
     name: str
     description: Optional[str]
-    status: bool
+    active: bool
 
     class Config:
         from_attributes = True

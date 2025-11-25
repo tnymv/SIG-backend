@@ -11,7 +11,7 @@ class Rol(Base):
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     
     # Relación con la tabla permisos
     permissions = relationship("Permissions",secondary="rol_permissions", back_populates="roles")

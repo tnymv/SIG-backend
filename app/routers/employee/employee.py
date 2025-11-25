@@ -88,7 +88,7 @@ async def toggle_type_employee(
 ): 
     try:
         toggle_employee = toggle_state(db, employee_id,current_user)
-        action = "activo" if toggle_employee.state else "inactivo"
+        action = "activo" if toggle_employee.active else "inactivo"
         return success_response({
                     "message": f"Se {action} el empleado {toggle_employee.last_name}, correctamente.",
                 })

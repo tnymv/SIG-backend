@@ -12,7 +12,7 @@ class Employee(Base):
     phone_number = Column(String(20), nullable=True) 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    state = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     
     # Relación con la tabla Username
     users = relationship("Username", back_populates="employee")

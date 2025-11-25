@@ -5,7 +5,7 @@ from typing import Optional
 class TypeEmployeeBase(BaseModel):
     name: str
     description: str
-    state: bool
+    active: bool
     
 class TypeEmployeeCreate(TypeEmployeeBase): 
     pass
@@ -13,7 +13,7 @@ class TypeEmployeeCreate(TypeEmployeeBase):
 class TypeEmployeeUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    state: Optional[bool] = None
+    active: Optional[bool] = None
 
 class TypeEmployeeResponse(TypeEmployeeBase):
     id_type_employee: int

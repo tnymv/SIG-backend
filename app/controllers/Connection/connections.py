@@ -12,7 +12,7 @@ from app.schemas.user.user import UserLogin
 from app.models.pipes.pipes import Pipes
 from app.utils.logger import create_log
 
-def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str] = None):
+def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str] = None, status: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
 
@@ -41,6 +41,10 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             pass
         
         query = query.filter(or_(*search_filters))
+    
+    # Filtrar por status si se proporciona
+    if status:
+        query = query.filter(Connection.status == status)
 
     count_query = db.query(Connection)
     if search and search.strip():
@@ -60,6 +64,11 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             pass
         
         count_query = count_query.filter(or_(*search_filters))
+    
+    # Aplicar filtro de status también al count_query
+    if status:
+        count_query = count_query.filter(Connection.status == status)
+    
     total = count_query.count()
     
     connections = query.order_by(Connection.id_connection.desc()).offset(offset).limit(limit).all()
@@ -85,7 +94,8 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             "installed_date": conn.installed_date,
             "installed_by": conn.installed_by,
             "description": conn.description,
-            "state": conn.state,
+            "status": conn.status,
+            "active": conn.active,
             "created_at": conn.created_at,
             "updated_at": conn.updated_at,
             "pipes": [
@@ -126,7 +136,8 @@ def get_by_id(db: Session, id_connection: int):
         "installed_date": conn.installed_date,
         "installed_by": conn.installed_by,
         "description": conn.description,
-        "state": conn.state,
+        "status": conn.status,
+        "active": conn.active,
         "created_at": conn.created_at,
         "updated_at": conn.updated_at,
         "pipes": [
@@ -150,7 +161,8 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=data.installed_date,
             installed_by=current_user.user,
             description=data.description,
-            state=True,
+            status=data.status.value if hasattr(data.status, 'value') else data.status,
+            active=True,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -185,7 +197,8 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=new_connection.installed_date,
             installed_by=new_connection.installed_by,
             description=new_connection.description,
-            state=new_connection.state,
+            status=new_connection.status,
+            active=new_connection.active,
             created_at=new_connection.created_at,
             updated_at=new_connection.updated_at,
             pipes=[{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in new_connection.pipes]
@@ -246,7 +259,8 @@ def update(db: Session, id_connection: int, data, current_user: UserLogin):
             "installed_date": connection.installed_date,
             "installed_by": connection.installed_by,
             "description": connection.description,
-            "state": connection.state,
+            "status": connection.status,
+            "active": connection.active,
             "created_at": connection.created_at,
             "updated_at": connection.updated_at,
             "pipes": [
@@ -268,13 +282,13 @@ def toggle_state(db: Session, id_connection: int,current_user: UserLogin):
     if not connection:
         raise HTTPException(status_code=404, detail="La conexión no existe")
 
-    connection.state = not connection.state
+    connection.active = not connection.active
     connection.updated_at = datetime.now()
     db.commit()
     db.refresh(connection)
     
     status = ""
-    if connection.state is False:
+    if connection.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

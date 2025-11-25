@@ -114,7 +114,7 @@ def create(db: Session, data: InterventionsCreate, current_user: UserLogin):
             description=data.description,
             start_date=data.start_date,
             end_date=data.end_date,
-            status=data.status,
+            active=data.active,
             photography=data.photography,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -201,12 +201,12 @@ def toggle_state(db: Session, intervention_id: int, current_user: UserLogin):
         )
     
     try:
-        intervention.status = not intervention.status
+        intervention.active = not intervention.active
         intervention.updated_at = datetime.now()
         db.commit()
         db.refresh(intervention)
 
-        action_text = "activó" if intervention.status else "desactivó"
+        action_text = "activó" if intervention.active else "desactivó"
         create_log(
             db,
             user_id=current_user.id_user,

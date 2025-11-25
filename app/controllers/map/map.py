@@ -24,7 +24,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
         .options(
             joinedload(Tank.pipes).joinedload(Pipes.connections)
         )
-        .filter(Tank.state == True)   # <-- SOLO TANQUES ACTIVOS
+        .filter(Tank.active == True)   # <-- SOLO TANQUES ACTIVOS
         .all()
     )
 
@@ -37,13 +37,13 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
 
     # Filtrar tuberías activas
     for tank in tanks:
-        tank.pipes = [pipe for pipe in tank.pipes if pipe.status == True]
+        tank.pipes = [pipe for pipe in tank.pipes if pipe.active == True]
 
     # Filtrar conexiones activas
     for tank in tanks:
         for pipe in tank.pipes:
             pipe.connections = [
-                conn for conn in pipe.connections if conn.state == True
+                conn for conn in pipe.connections if conn.active == True
             ]
 
     # IDs después de filtrar
@@ -80,7 +80,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
         ).filter(
             Connection.id_connection.in_(all_conn_ids)
         ).filter(
-            Connection.state == True      # <-- SOLO CONEXIONES ACTIVAS (opcional)
+            Connection.active == True      # <-- SOLO CONEXIONES ACTIVAS (opcional)
         ).all()
 
         conn_coords_map = {cid: (lon, lat) for cid, lon, lat in conn_coords_query}
@@ -121,7 +121,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
                         connection_type=conn.connection_type or "",
                         depth_m=float(conn.depth_m) if conn.depth_m else 0.0,
                         installed_by=conn.installed_by or "",
-                        state=conn.state
+                        active=conn.active
                     )
                 )
 
@@ -130,7 +130,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
                     id_pipes=pipe.id_pipes,
                     material=pipe.material,
                     diameter=pipe.diameter,
-                    status=pipe.status,
+                    active=pipe.active,
                     size=pipe.size,
                     installation_date=pipe.installation_date,
                     coordinates=coords,
@@ -146,7 +146,7 @@ def get_all_tank_with_pipes_and_connections(db: Session) -> List[TankSchema]:
                 latitude=tank_lat,
                 longitude=tank_lon,
                 photography=list(tank.photography or []),
-                state=tank.state,
+                active=tank.active,
                 pipes=pipes_data
             )
         )

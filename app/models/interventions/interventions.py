@@ -9,7 +9,7 @@ class Interventions(Base):
     description = Column(String(200), index=True, nullable=False)
     start_date = Column(DateTime, default=datetime.utcnow)
     end_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     photography = Column(ARRAY(String), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

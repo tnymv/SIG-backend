@@ -22,8 +22,8 @@ from app.models.rol.rol import Rol
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Crear todas las tablas si no existen
-    Base.metadata.create_all(bind=engine)
+    # Las tablas se crean mediante migraciones de Alembic
+    # Base.metadata.create_all(bind=engine)  # Removido: usar 'alembic upgrade head' para crear tablas
     
     db = SessionLocal()
     try:
@@ -150,7 +150,7 @@ async def lifespan(app: FastAPI):
                 nuevo_permiso = Permissions(
                     name=nombre,
                     description=descripcion,
-                    status=True
+                    active=True
                 )
                 db.add(nuevo_permiso)
                 permisos_creados.append(nombre)
@@ -158,7 +158,7 @@ async def lifespan(app: FastAPI):
         db.commit()
         
         if admin_role:
-            todos_los_permisos = db.query(Permissions).filter(Permissions.status == True).all()
+            todos_los_permisos = db.query(Permissions).filter(Permissions.active == True).all()
             
             permisos_actuales = {perm.id_permissions for perm in admin_role.permissions}
             
