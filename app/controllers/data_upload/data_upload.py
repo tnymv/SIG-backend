@@ -47,19 +47,40 @@ def get_by_identifier(db: Session, identifier: str):
 
 
 def create_bulk(db: Session, data_list: List[Data_uploadCreate], current_user: UserLogin):
-    """Crea múltiples registros a la vez"""
+    """Crea múltiples registros a la vez o actualiza si ya existen"""
     created_records = []
+    updated_records = []
     
     for data in data_list:
-        # Verificar si ya existe
+        # Verificar si ya existe por identifier (clave primaria)
         existing = db.query(Data_upload).filter(
-            Data_upload.taxpayer == data.taxpayer, 
-            Data_upload.cologne == data.cologne
+            Data_upload.identifier == data.identifier
         ).first()
         
         if existing:
-            continue  # Saltar si ya existe
+            # Actualizar registro existente
+            existing.siaf = data.siaf
+            existing.municipality = data.municipality
+            existing.department = data.department
+            existing.institutional_classification = data.institutional_classification
+            existing.report = data.report
+            existing.date = data.date
+            existing.hour = data.hour
+            existing.seriereport = data.seriereport
+            existing.user = data.user
+            existing.taxpayer = data.taxpayer
+            existing.cologne = data.cologne
+            existing.cat_service = data.cat_service
+            existing.cannon = data.cannon
+            existing.excess = data.excess
+            existing.total = data.total
+            existing.updated_at = datetime.now()
+            # Marcar como actualizado agregando un atributo temporal
+            setattr(existing, '_was_updated', True)
+            updated_records.append(existing)
+            continue
         
+        # Crear nuevo registro
         new_data_upload = Data_upload(
             # Encabezado
             siaf=data.siaf,
@@ -85,24 +106,37 @@ def create_bulk(db: Session, data_list: List[Data_uploadCreate], current_user: U
         )
         
         db.add(new_data_upload)
+        setattr(new_data_upload, '_was_updated', False)
         created_records.append(new_data_upload)
     
     db.commit()
     
-    # Refresh todos los registros creados
+    # Refresh todos los registros creados y actualizados
     for record in created_records:
         db.refresh(record)
+    for record in updated_records:
+        db.refresh(record)
     
-    create_log(
-        db,
-        user_id=current_user.id_user,
-        action="CREATE",
-        entity="Data_upload",
-        entity_id=None,
-        description=f"El usuario {current_user.user} creó {len(created_records)} registros de data upload"
-    )
+    # Log solo si hay registros creados o actualizados
+    if created_records or updated_records:
+        action_desc = []
+        if created_records:
+            action_desc.append(f"creó {len(created_records)} registros")
+        if updated_records:
+            action_desc.append(f"actualizó {len(updated_records)} registros")
+        
+        create_log(
+            db,
+            user_id=current_user.id_user,
+            action="CREATE" if created_records else "UPDATE",
+            entity="Data_upload",
+            entity_id=None,
+            description=f"El usuario {current_user.user} {', '.join(action_desc)} de data upload"
+        )
 
-    return created_records
+    # Retornar todos los registros con información de si fueron creados o actualizados
+    all_records = created_records + updated_records
+    return all_records
 
 def update(db: Session, identifier: str, data: Data_uploadUpdate, current_user: UserLogin):
     data_upload = db.query(Data_upload).filter(Data_upload.identifier == identifier).first()
@@ -178,10 +212,15 @@ def process_excel_data(db: Session, file_content: bytes, current_user: UserLogin
         # Insertar en BD solo si hay datos válidos
         if processed_data:
             try:
-                created_records = create_bulk(db, processed_data, current_user)
+                records = create_bulk(db, processed_data, current_user)
+                # Contar cuántos fueron creados vs actualizados usando el atributo temporal
+                created_count = sum(1 for r in records if not getattr(r, '_was_updated', False))
+                updated_count = sum(1 for r in records if getattr(r, '_was_updated', False))
+                
                 return {
                     "success": True,
-                    "created_records": len(created_records),
+                    "created_records": created_count,
+                    "updated_records": updated_count,
                     "total_processed": len(processed_data),
                     "errors": errors if errors else []
                 }

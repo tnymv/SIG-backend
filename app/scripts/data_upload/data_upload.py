@@ -92,9 +92,13 @@ class ExcelProcessor:
                             # Si hay "DEPARTAMENTO" después, cortar ahí
                             if 'DEPARTAMENTO' in municipio_text:
                                 municipio_text = municipio_text.split('DEPARTAMENTO')[0].strip()
+                            # Eliminar cualquier texto después de palabras clave como "HORA:", "FECHA:", "REPORTE:", "USUARIO:"
+                            for keyword in ['HORA:', 'FECHA:', 'REPORTE:', 'USUARIO:', 'CLASIFICACIÓN', 'INSTITUCIONAL']:
+                                if keyword in municipio_text:
+                                    municipio_text = municipio_text.split(keyword)[0].strip()
                             # Limpiar espacios múltiples y caracteres especiales
                             municipio_text = ' '.join(municipio_text.split())
-                            if municipio_text:
+                            if municipio_text and len(municipio_text) > 3:  # Validar que tenga contenido real
                                 report_municipality = municipio_text
                 
                 # Buscar departamento (formato: DEPARTAMENTO DE QUETZALTENANGO)
@@ -102,9 +106,13 @@ class ExcelProcessor:
                     depto_match = row_str.split('DEPARTAMENTO DE')
                     if len(depto_match) > 1:
                         depto_text = depto_match[1].strip()
+                        # Eliminar cualquier texto después de palabras clave
+                        for keyword in ['HORA:', 'FECHA:', 'REPORTE:', 'USUARIO:', 'CLASIFICACIÓN', 'INSTITUCIONAL', 'MUNICIPALIDAD']:
+                            if keyword in depto_text:
+                                depto_text = depto_text.split(keyword)[0].strip()
                         # Limpiar espacios múltiples
                         depto_text = ' '.join(depto_text.split())
-                        if depto_text:
+                        if depto_text and len(depto_text) > 3:  # Validar que tenga contenido real
                             report_department = depto_text
             
             # Leer Excel saltando encabezados (desde la fila 9)
