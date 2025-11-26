@@ -65,7 +65,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
             "id_pipes": pipe.id_pipes,
             "material": pipe.material,
             "diameter": pipe.diameter,
-            "status": pipe.status,
+            "active": pipe.active,
             "size": pipe.size,
             "installation_date": pipe.installation_date,
             "coordinates": coords,
@@ -146,7 +146,7 @@ def get_by_id(db: Session, pipe_id: int):
         "id_pipes": pipe.id_pipes,
         "material": pipe.material,
         "diameter": pipe.diameter,
-        "status": pipe.status,
+        "active": pipe.active,
         "size": pipe.size,
         "installation_date": pipe.installation_date,
         "coordinates": coords,  # 🔹 devuelve toda la línea
@@ -197,7 +197,7 @@ def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
         new_pipe = Pipes(
         material=pipe_data.material,
         diameter=pipe_data.diameter,
-        status=pipe_data.status,
+        active=pipe_data.active,
         size=pipe_data.size,
         installation_date=pipe_data.installation_date,
         coordinates=WKTElement(f"LINESTRING({coords_text})", srid=4326),
@@ -242,7 +242,7 @@ def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
             "id_pipes": new_pipe.id_pipes,
             "material": new_pipe.material,
             "diameter": new_pipe.diameter,
-            "status": new_pipe.status,
+            "active": new_pipe.active,
             "size": new_pipe.size,
             "installation_date": new_pipe.installation_date,
             "observations": new_pipe.observations,
@@ -377,7 +377,7 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
             "id_pipes": pipe.id_pipes,
             "material": pipe.material,
             "diameter": pipe.diameter,
-            "status": pipe.status,
+            "active": pipe.active,
             "size": pipe.size,
             "installation_date": pipe.installation_date,
             "coordinates": coords,
@@ -400,13 +400,13 @@ def toggle_state(db: Session, pipe_id: int,current_user: UserLogin):
     if not pipe:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "La tubería no existe"))
 
-    pipe.status = not pipe.status
+    pipe.active = not pipe.active
     pipe.updated_at = datetime.now()
 
     db.commit()
     db.refresh(pipe)
     state = ""
-    if pipe.status is False:
+    if pipe.active is False:
         state = "inactivo"
     else: 
         state = "activo" 

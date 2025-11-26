@@ -88,7 +88,7 @@ async def toggle_connection_state(
 ):
     try:
         toggle_connection = toggle_state(db, connection_id,current_user)
-        action = "activó" if toggle_connection.state else "desactivó"
+        action = "activó" if toggle_connection.active else "desactivó"
         return success_response({
             "message": f"Se {action} la conexión correctamente."
         })

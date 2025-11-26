@@ -60,15 +60,13 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             pass
         
         count_query = count_query.filter(or_(*search_filters))
+    
     total = count_query.count()
     
     connections = query.order_by(Connection.id_connection.desc()).offset(offset).limit(limit).all()
 
-    if not connections and not search:
-        raise HTTPException(
-            status_code=404,
-            detail=existence_response_dict(False, "No se encontraron conexiones")
-        )
+    # No lanzar error si no hay conexiones - simplemente devolver lista vacía
+    # Esto es válido cuando no hay datos en la BD o cuando los filtros no coinciden
 
     connection_response = []
 
@@ -85,7 +83,7 @@ def get_all(db: Session, page: int = 1, limit: int = 10000, search: Optional[str
             "installed_date": conn.installed_date,
             "installed_by": conn.installed_by,
             "description": conn.description,
-            "state": conn.state,
+            "active": conn.active,
             "created_at": conn.created_at,
             "updated_at": conn.updated_at,
             "pipes": [
@@ -126,7 +124,7 @@ def get_by_id(db: Session, id_connection: int):
         "installed_date": conn.installed_date,
         "installed_by": conn.installed_by,
         "description": conn.description,
-        "state": conn.state,
+        "active": conn.active,
         "created_at": conn.created_at,
         "updated_at": conn.updated_at,
         "pipes": [
@@ -150,7 +148,7 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=data.installed_date,
             installed_by=current_user.user,
             description=data.description,
-            state=True,
+            active=True,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -185,7 +183,7 @@ def create(db: Session, data: ConnectionBase,current_user: UserLogin):
             installed_date=new_connection.installed_date,
             installed_by=new_connection.installed_by,
             description=new_connection.description,
-            state=new_connection.state,
+            active=new_connection.active,
             created_at=new_connection.created_at,
             updated_at=new_connection.updated_at,
             pipes=[{"id_pipes": pipe.id_pipes, "material": pipe.material, "diameter": pipe.diameter} for pipe in new_connection.pipes]
@@ -246,7 +244,7 @@ def update(db: Session, id_connection: int, data, current_user: UserLogin):
             "installed_date": connection.installed_date,
             "installed_by": connection.installed_by,
             "description": connection.description,
-            "state": connection.state,
+            "active": connection.active,
             "created_at": connection.created_at,
             "updated_at": connection.updated_at,
             "pipes": [
@@ -268,13 +266,13 @@ def toggle_state(db: Session, id_connection: int,current_user: UserLogin):
     if not connection:
         raise HTTPException(status_code=404, detail="La conexión no existe")
 
-    connection.state = not connection.state
+    connection.active = not connection.active
     connection.updated_at = datetime.now()
     db.commit()
     db.refresh(connection)
     
     status = ""
-    if connection.state is False:
+    if connection.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

@@ -14,7 +14,7 @@ class Username(Base):
     rol_id = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     
     # Relaciones
     employee = relationship("Employee", back_populates="users")

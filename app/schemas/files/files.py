@@ -9,7 +9,7 @@ class FilesBase(BaseModel):
     canon: int
     excess: float
     total: int
-    status: bool = True
+    active: bool = True
 
 class FilesResponse(FilesBase):
     id: int
@@ -29,5 +29,5 @@ class FilesUpdate(BaseModel):
     canon: Optional[int] = None
     excess: Optional[float] = None
     total: Optional[int] = None
-    status: Optional[bool] = None
+    active: Optional[bool] = None
     updated_at: datetime = datetime.now()

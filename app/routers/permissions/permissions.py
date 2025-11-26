@@ -92,7 +92,7 @@ async def toggle_permission_state(
 ):
     try:
         toggle_permission = toggle_state(db, permission_id,current_user)
-        action = "activo" if toggle_permission.status else "inactivo"
+        action = "activo" if toggle_permission.active else "inactivo"
         return success_response({
                     "message": f"Se {action} el tipo de empleado {toggle_permission.name}, correctamente.",
                 })

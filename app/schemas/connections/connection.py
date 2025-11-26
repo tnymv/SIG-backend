@@ -15,7 +15,7 @@ class ConnectionBase(BaseModel):
     installed_date: datetime
     installed_by: Optional[str] = None
     description: Optional[str] = None
-    state: bool = True
+    active: bool = True
 
 class ConnectionCreate(ConnectionBase):
     pipe_ids: Optional[List[int]] = []
@@ -31,7 +31,7 @@ class ConnectionUpdate(BaseModel):
     installed_date: Optional[datetime] = None
     installed_by: Optional[str] = None
     description: Optional[str] = None
-    state: Optional[bool] = None
+    active: Optional[bool] = None
     pipe_ids: Optional[List[int]] = []
 
 class ConnectionResponse(BaseModel):
@@ -46,7 +46,7 @@ class ConnectionResponse(BaseModel):
     installed_date: datetime
     installed_by: Optional[str]
     description: Optional[str]
-    state: bool
+    active: bool
     created_at: datetime
     updated_at: datetime
     pipes: Optional[List[dict]] = []

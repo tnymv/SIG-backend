@@ -66,7 +66,7 @@ def create(db: Session, data: PermissionsCreate,current_user: UserLogin):
     new_permission = Permissions(
             name=data.name,
             description=data.description,
-            status=data.status,
+            active=data.active,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -104,13 +104,13 @@ def update(db: Session, permission_id: int, data: PermissionsUpdate,current_user
 
 def toggle_state(db: Session, permission_id: int,current_user: UserLogin):
     permission = get_by_id(db, permission_id)
-    permission.status = not permission.status 
+    permission.active = not permission.active 
     permission.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(permission)
     
     state = ""
-    if permission.status is False:
+    if permission.active is False:
         state = "inactivo"
     else: 
         state = "activo" 

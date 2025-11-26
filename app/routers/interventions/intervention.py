@@ -1,5 +1,5 @@
 from app.controllers.interventions.interventions import get_all, get_by_id, create, update, toggle_state
-from app.schemas.interventions.interventions import InterventionsResponse, InterventionsCreate, InterventionsUpdate
+from app.schemas.interventions.interventions import InterventionsResponse, InterventionsCreate, InterventionsUpdate, InterventionStatus
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.utils.response import success_response, error_response
 from app.schemas.user.user import UserLogin
@@ -15,11 +15,14 @@ async def list_interventions(
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(10000, ge=1, le=10000, description="Límite de resultados por página"),
     search: Optional[str] = Query(None, description="Término de búsqueda para filtrar por descripción"),
+    status: Optional[InterventionStatus] = Query(None, description="Filtrar por estado: SIN INICIAR, EN CURSO, FINALIZADO"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
     try:
-        interventions, total = get_all(db, page, limit, search)
+        # Convertir el enum a string para pasarlo al controlador
+        status_str = status.value if status else None
+        interventions, total = get_all(db, page, limit, search, status_str)
         total_pages = (total + limit - 1) // limit
         next_page = page + 1 if page < total_pages else None
         prev_page = page - 1 if page > 1 else None
@@ -97,7 +100,7 @@ async def toggle_intervention_state(
 ):
     try:
         toggle_intervention = toggle_state(db, intervention_id, current_user)
-        action = "activó" if toggle_intervention.status else "desactivó"
+        action = "activó" if toggle_intervention.active else "desactivó"
         return success_response(
             {"message": f"Se {action} la intervención correctamente."},
             f"Intervención {action} correctamente"

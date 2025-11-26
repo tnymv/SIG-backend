@@ -14,7 +14,7 @@ class ConnectionSchema(BaseModel):
     connection_type: str
     depth_m: Optional[float] = None
     installed_by: str
-    state: bool
+    active: bool
 
         
 class PipeSchema(BaseModel):
@@ -23,7 +23,7 @@ class PipeSchema(BaseModel):
     id_pipes: int
     material: str
     diameter: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
-    status: bool
+    active: bool
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date: Optional[datetime] = None
     coordinates: List[Tuple[float, float]]
@@ -39,5 +39,5 @@ class TankSchema(BaseModel):
     latitude: float
     longitude: float
     photography: List[str] = []
-    state: bool
+    active: bool
     pipes: List[PipeSchema] = []

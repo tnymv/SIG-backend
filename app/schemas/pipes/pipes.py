@@ -7,7 +7,7 @@ from pydantic import Field
 class PipesBase(BaseModel):
     material: str
     diameter: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
-    status: bool = True
+    active: bool = True
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
     observations: Optional[str] = None
@@ -31,7 +31,7 @@ class PipesResponse(BaseModel):
     id_pipes: int
     material: str
     diameter: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
-    status: bool
+    active: bool
     size: Decimal = Field(..., max_digits=10, decimal_places=6, gt=0)
     installation_date:datetime
     coordinates: List[Tuple[float, float]]
@@ -51,7 +51,7 @@ class PipesResponseCreate(PipesBase):
 class PipesUpdate(BaseModel):
     material: Optional[str] = None
     diameter: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
-    status: Optional[bool] = None
+    active: Optional[bool] = None
     size: Optional[Decimal] = Field(None, max_digits=10, decimal_places=6, gt=0)
     installation_date: Optional[datetime] = None
     coordinates: Optional[List[Tuple[float, float]]] = None

@@ -72,7 +72,7 @@ def create(db: Session, data: UserCreate,current_user: UserLogin):
                 email= data.email,
                 employee_id=data.employee_id,
                 rol_id=data.rol_id,
-                status=data.status,
+                active=data.active,
                 created_at=datetime.now(),
                 updated_at=datetime.now()
             )
@@ -120,13 +120,13 @@ def update(db: Session, id_user: int, data: UserUpdate,current_user: UserLogin):
 
 def toggle_state(db: Session, id_user: int, current_user: UserLogin):
     user  = get_by_id(db, id_user)
-    user.status = not user.status
+    user.active = not user.active
     user.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(user)
     
     status = ""
-    if user.status is False:
+    if user.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

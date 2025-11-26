@@ -55,7 +55,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
             "longitude": lon,
             "connections": t.connections,
             "photography": list(t.photography or []),
-            "state": t.state,
+            "active": t.active,
             "created_at": t.created_at,
             "updated_at": t.updated_at
         }
@@ -88,7 +88,7 @@ def get_by_id(db: Session, tank_id: int):
         "longitude": longitude,
         "connections": tank.connections,
         "photography": list(tank.photography or []),
-        "state": tank.state,
+        "active": tank.active,
         "created_at": tank.created_at,
         "updated_at": tank.updated_at
     }
@@ -109,7 +109,7 @@ def create(db: Session, tank_data: TankBase,current_user: UserLogin):
             coordinates=f"SRID=4326;POINT({tank_data.longitude} {tank_data.latitude})",
             connections=tank_data.connections,
             photography=tank_data.photography if tank_data.photography else [],
-            state=tank_data.state,
+            active=tank_data.active,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -130,7 +130,7 @@ def create(db: Session, tank_data: TankBase,current_user: UserLogin):
             "longitude": longitude,
             "connections": new_tank.connections,
             "photography": list(new_tank.photography) if new_tank.photography else [],
-            "state": new_tank.state,
+            "active": new_tank.active,
             "created_at": new_tank.created_at,
             "updated_at": new_tank.updated_at
         }
@@ -190,7 +190,7 @@ def update(db: Session, tank_id: int, tank_data: TankUpdate,current_user: UserLo
             "longitude": longitude,
             "connections": tank.connections,
             "photography": list(tank.photography) if tank.photography else [],
-            "state": tank.state,
+            "active": tank.active,
             "created_at": tank.created_at,
             "updated_at": tank.updated_at
         }
@@ -222,13 +222,13 @@ def toggle_state(db: Session, tank_id: int,current_user: UserLogin):
             headers={"X-Error": "El tanque no existe"}
         )
 
-    tank.state = not tank.state
+    tank.active = not tank.active
     tank.updated_at = datetime.now()
 
     db.commit()
     db.refresh(tank)
     status = ""
-    if tank.state is False:
+    if tank.active is False:
         status = "inactivo"
     else: 
         status = "activo" 

@@ -60,6 +60,37 @@ uvicorn main:app --reload
 ```
 El proyecto se ejecutará en `http://localhost:3000`
 
+## 🔄 Migraciones de Base de Datos con Alembic
+
+### Crear una Nueva Migración Autogenerada
+
+```bash
+# Activar el entorno virtual primero
+source .venv/bin/activate  # macOS/Linux
+# o
+.venv\Scripts\activate     # Windows
+
+# Crear una nueva migración autogenerada
+alembic revision --autogenerate -m "Descripción de los cambios"
+```
+
+### Aplicar Migraciones (Upgrade)
+
+```bash
+# Aplicar todas las migraciones pendientes
+alembic upgrade head
+```
+
+### Revertir Migraciones (Downgrade)
+
+```bash
+# Revertir una migración (ir hacia atrás)
+alembic downgrade -1
+
+# Revertir hasta una migración específica
+alembic downgrade <revision_id>
+```
+
 ## 📜 Scripts Disponibles
 
 | Comando | Descripción |

@@ -88,7 +88,7 @@ async def toggle_tank_state(
 ): 
     try:
         toggle_tank = toggle_state(db, tank_id,current_user)
-        action = "activo" if toggle_tank.state else "inactivo"
+        action = "activo" if toggle_tank.active else "inactivo"
         return success_response({
             "message": f"Se {action} el tanque '{toggle_tank.name}', correctamente."
         })

@@ -16,7 +16,7 @@ from app.utils.logger import create_log
 from app.controllers.auth.auth_controller import get_current_active_user
 from app.schemas.user.user import UserLogin
 
-def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
+def get_all(db: Session, page: int, limit: int, search: Optional[str] = None, status: Optional[str] = None):
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="La página y el límite deben ser mayores que 0")
     
@@ -30,16 +30,16 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
             func.lower(Interventions.description).like(search_term)
         )
     
+    # Filtrar por status si se proporciona
+    if status:
+        query = query.filter(Interventions.status == status)
+    
     total = query.count()
     
     interventions = query.order_by(Interventions.id_interventions.desc()).offset(offset).limit(limit).all()
     
-    if not interventions and not search:
-        raise HTTPException(
-            status_code = 404, 
-            detail=existence_response_dict(False, "No hay intervenciones registradas"),
-            headers={"X-Error": "No hay intervenciones registradas"}
-        )
+    # No lanzar error si no hay intervenciones - simplemente devolver lista vacía
+    # Esto es válido cuando no hay datos en la BD o cuando los filtros no coinciden
     
     return interventions, total
 
@@ -114,7 +114,8 @@ def create(db: Session, data: InterventionsCreate, current_user: UserLogin):
             description=data.description,
             start_date=data.start_date,
             end_date=data.end_date,
-            status=data.status,
+            status=data.status.value if hasattr(data.status, 'value') else data.status,
+            active=data.active,
             photography=data.photography,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -201,12 +202,12 @@ def toggle_state(db: Session, intervention_id: int, current_user: UserLogin):
         )
     
     try:
-        intervention.status = not intervention.status
+        intervention.active = not intervention.active
         intervention.updated_at = datetime.now()
         db.commit()
         db.refresh(intervention)
 
-        action_text = "activó" if intervention.status else "desactivó"
+        action_text = "activó" if intervention.active else "desactivó"
         create_log(
             db,
             user_id=current_user.id_user,

@@ -9,7 +9,7 @@ class Permissions(Base):
     id_permissions = Column(Integer, primary_key=True, index = True)
     name = Column(String(100), index = True, nullable = False)
     description = Column(String(100), index = True, nullable = False)
-    status = Column(Boolean, default=True)
+    active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
