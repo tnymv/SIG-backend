@@ -22,7 +22,10 @@ def get_user_with_permissions(db: Session, email: str): #Obtener usuario con rol
     ).filter(username_model.email == email).first()
 
 def authenticate_user(db: Session, username: str, password: str): #Esto sirve para autenticar al usuario
-    user = get_user(db, username)
+    # Buscar por email o por nombre de usuario
+    user = db.query(username_model).filter(
+        (username_model.email == username) | (username_model.user == username)
+    ).first()
     if not user: 
         return False
     if not verify_password(password, user.password_hash):

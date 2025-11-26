@@ -23,7 +23,7 @@ from app.models.rol.rol import Rol
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Las tablas se crean mediante migraciones de Alembic
-    # Base.metadata.create_all(bind=engine)  # Removido: usar 'alembic upgrade head' para crear tablas
+    Base.metadata.create_all(bind=engine)  # Removido: usar 'alembic upgrade head' para crear tablas
     
     db = SessionLocal()
     try:
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
             admin_role = Rol(
                 name="Administrador",
                 description="Rol con acceso total al sistema",
-                status=1
+                active=True
             )
             db.add(admin_role)
             db.commit()
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
             admin_type_employee = TypeEmployee(
                 name="Administrador",
                 description="Empleado con acceso completo al sistema",
-                state=True
+                active=True
             )
             db.add(admin_type_employee)
             db.commit()
@@ -58,14 +58,14 @@ async def lifespan(app: FastAPI):
                 first_name="Admin",
                 last_name="Sistema",
                 phone_number="00000000",
-                state=True,
+                active=True,
                 id_type_employee=admin_type_employee.id_type_employee  # asignar tipo de empleado
             )
             db.add(admin_employee)
             db.commit()
             db.refresh(admin_employee)
 
-        # Crear Usuario admin si no existe
+        # Crear Usuario admin si no existe, o actualizar si está inactivo
         admin_user = db.query(Username).filter(Username.email == "admin@sig.com").first()
         if not admin_user:
             admin_user = Username(
@@ -74,9 +74,16 @@ async def lifespan(app: FastAPI):
                 email="admin@sig.com",
                 employee_id=admin_employee.id_employee,
                 rol_id=admin_role.id_rol,
-                status=1
+                active=True
             )
             db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+        elif not admin_user.active:
+            # Si el usuario existe pero está inactivo, activarlo y actualizar la contraseña
+            admin_user.active = True
+            admin_user.password_hash = get_password_hash("admin123")
+            admin_user.rol_id = admin_role.id_rol
             db.commit()
             db.refresh(admin_user)
 

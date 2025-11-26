@@ -28,26 +28,33 @@ def upgrade() -> None:
     connection = op.get_bind()
     inspector = sa.inspect(connection)
     
+    def table_exists(table_name):
+        """Verifica si una tabla existe"""
+        return table_name in inspector.get_table_names()
+    
     # Restaurar columna coordinates en pipes (LINESTRING)
-    pipes_columns = [col['name'] for col in inspector.get_columns('pipes')]
-    if 'coordinates' not in pipes_columns:
-        # Agregar como nullable para no perder datos existentes
-        op.add_column('pipes', sa.Column('coordinates', Geometry(geometry_type='LINESTRING', srid=4326), nullable=True))
-        # NO inicializamos valores por defecto - los datos deben venir de backup si existían
+    if table_exists('pipes'):
+        pipes_columns = [col['name'] for col in inspector.get_columns('pipes')]
+        if 'coordinates' not in pipes_columns:
+            # Agregar como nullable para no perder datos existentes
+            op.add_column('pipes', sa.Column('coordinates', Geometry(geometry_type='LINESTRING', srid=4326), nullable=True))
+            # NO inicializamos valores por defecto - los datos deben venir de backup si existían
     
     # Restaurar columna coordinates en tanks (POINT)
-    tanks_columns = [col['name'] for col in inspector.get_columns('tanks')]
-    if 'coordinates' not in tanks_columns:
-        # Agregar como nullable para no perder datos existentes
-        op.add_column('tanks', sa.Column('coordinates', Geometry(geometry_type='POINT', srid=4326), nullable=True))
-        # NO inicializamos valores por defecto - los datos deben venir de backup si existían
+    if table_exists('tanks'):
+        tanks_columns = [col['name'] for col in inspector.get_columns('tanks')]
+        if 'coordinates' not in tanks_columns:
+            # Agregar como nullable para no perder datos existentes
+            op.add_column('tanks', sa.Column('coordinates', Geometry(geometry_type='POINT', srid=4326), nullable=True))
+            # NO inicializamos valores por defecto - los datos deben venir de backup si existían
     
     # Restaurar columna coordenates en connections (POINT) - nota: el modelo usa 'coordenates' con 'e'
-    connections_columns = [col['name'] for col in inspector.get_columns('connections')]
-    if 'coordenates' not in connections_columns:
-        # Agregar como nullable para no perder datos existentes
-        op.add_column('connections', sa.Column('coordenates', Geometry(geometry_type='POINT', srid=4326), nullable=True))
-        # NO inicializamos valores por defecto - los datos deben venir de backup si existían
+    if table_exists('connections'):
+        connections_columns = [col['name'] for col in inspector.get_columns('connections')]
+        if 'coordenates' not in connections_columns:
+            # Agregar como nullable para no perder datos existentes
+            op.add_column('connections', sa.Column('coordenates', Geometry(geometry_type='POINT', srid=4326), nullable=True))
+            # NO inicializamos valores por defecto - los datos deben venir de backup si existían
 
 
 def downgrade() -> None:

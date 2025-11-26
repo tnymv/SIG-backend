@@ -17,44 +17,51 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Crear tabla data_upload
-    op.create_table(
-        'data_upload',
-        sa.Column('siaf', sa.String(length=100), nullable=False),
-        sa.Column('institutional_classification', sa.Integer(), nullable=False),
-        sa.Column('report', sa.String(length=200), nullable=False),
-        sa.Column('date', sa.DateTime(), nullable=False),
-        sa.Column('hour', sa.Time(), nullable=False),
-        sa.Column('seriereport', sa.String(length=100), nullable=False),
-        sa.Column('user', sa.String(length=100), nullable=False),
-        sa.Column('identifier', sa.String(length=100), nullable=False, primary_key=True),
-        sa.Column('taxpayer', sa.String(length=100), nullable=False),
-        sa.Column('cologne', sa.String(length=200), nullable=False),
-        sa.Column('cat_service', sa.String(length=250), nullable=False),
-        sa.Column('cannon', sa.Float(), nullable=False),
-        sa.Column('excess', sa.Float(), nullable=False),
-        sa.Column('total', sa.Float(), nullable=False),
-        sa.Column('status', sa.Boolean(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-        sa.Column('updated_at', sa.DateTime(), nullable=True),
-    )
+    # Verificar si la tabla ya existe antes de crearla
+    from sqlalchemy import inspect
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    tables = inspector.get_table_names()
     
-    # Crear índices
-    op.create_index(op.f('ix_data_upload_siaf'), 'data_upload', ['siaf'], unique=False)
-    op.create_index(op.f('ix_data_upload_institutional_classification'), 'data_upload', ['institutional_classification'], unique=False)
-    op.create_index(op.f('ix_data_upload_report'), 'data_upload', ['report'], unique=False)
-    op.create_index(op.f('ix_data_upload_date'), 'data_upload', ['date'], unique=False)
-    op.create_index(op.f('ix_data_upload_hour'), 'data_upload', ['hour'], unique=False)
-    op.create_index(op.f('ix_data_upload_seriereport'), 'data_upload', ['seriereport'], unique=False)
-    op.create_index(op.f('ix_data_upload_user'), 'data_upload', ['user'], unique=False)
-    op.create_index(op.f('ix_data_upload_identifier'), 'data_upload', ['identifier'], unique=True)
-    op.create_index(op.f('ix_data_upload_taxpayer'), 'data_upload', ['taxpayer'], unique=False)
-    op.create_index(op.f('ix_data_upload_cologne'), 'data_upload', ['cologne'], unique=False)
-    op.create_index(op.f('ix_data_upload_cat_service'), 'data_upload', ['cat_service'], unique=False)
-    op.create_index(op.f('ix_data_upload_cannon'), 'data_upload', ['cannon'], unique=False)
-    op.create_index(op.f('ix_data_upload_excess'), 'data_upload', ['excess'], unique=False)
-    op.create_index(op.f('ix_data_upload_total'), 'data_upload', ['total'], unique=False)
-    op.create_index(op.f('ix_data_upload_status'), 'data_upload', ['status'], unique=False)
+    if 'data_upload' not in tables:
+        # Crear tabla data_upload
+        op.create_table(
+            'data_upload',
+            sa.Column('siaf', sa.String(length=100), nullable=False),
+            sa.Column('institutional_classification', sa.Integer(), nullable=False),
+            sa.Column('report', sa.String(length=200), nullable=False),
+            sa.Column('date', sa.DateTime(), nullable=False),
+            sa.Column('hour', sa.Time(), nullable=False),
+            sa.Column('seriereport', sa.String(length=100), nullable=False),
+            sa.Column('user', sa.String(length=100), nullable=False),
+            sa.Column('identifier', sa.String(length=100), nullable=False, primary_key=True),
+            sa.Column('taxpayer', sa.String(length=100), nullable=False),
+            sa.Column('cologne', sa.String(length=200), nullable=False),
+            sa.Column('cat_service', sa.String(length=250), nullable=False),
+            sa.Column('cannon', sa.Float(), nullable=False),
+            sa.Column('excess', sa.Float(), nullable=False),
+            sa.Column('total', sa.Float(), nullable=False),
+            sa.Column('status', sa.Boolean(), nullable=False),
+            sa.Column('created_at', sa.DateTime(), nullable=True),
+            sa.Column('updated_at', sa.DateTime(), nullable=True),
+        )
+        
+        # Crear índices solo si la tabla se creó
+        op.create_index(op.f('ix_data_upload_siaf'), 'data_upload', ['siaf'], unique=False)
+        op.create_index(op.f('ix_data_upload_institutional_classification'), 'data_upload', ['institutional_classification'], unique=False)
+        op.create_index(op.f('ix_data_upload_report'), 'data_upload', ['report'], unique=False)
+        op.create_index(op.f('ix_data_upload_date'), 'data_upload', ['date'], unique=False)
+        op.create_index(op.f('ix_data_upload_hour'), 'data_upload', ['hour'], unique=False)
+        op.create_index(op.f('ix_data_upload_seriereport'), 'data_upload', ['seriereport'], unique=False)
+        op.create_index(op.f('ix_data_upload_user'), 'data_upload', ['user'], unique=False)
+        op.create_index(op.f('ix_data_upload_identifier'), 'data_upload', ['identifier'], unique=True)
+        op.create_index(op.f('ix_data_upload_taxpayer'), 'data_upload', ['taxpayer'], unique=False)
+        op.create_index(op.f('ix_data_upload_cologne'), 'data_upload', ['cologne'], unique=False)
+        op.create_index(op.f('ix_data_upload_cat_service'), 'data_upload', ['cat_service'], unique=False)
+        op.create_index(op.f('ix_data_upload_cannon'), 'data_upload', ['cannon'], unique=False)
+        op.create_index(op.f('ix_data_upload_excess'), 'data_upload', ['excess'], unique=False)
+        op.create_index(op.f('ix_data_upload_total'), 'data_upload', ['total'], unique=False)
+        op.create_index(op.f('ix_data_upload_status'), 'data_upload', ['status'], unique=False)
 
 
 def downgrade() -> None:
