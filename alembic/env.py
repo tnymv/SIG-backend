@@ -32,6 +32,7 @@ from app.models.files.files import Files
 from app.models.type_employee.type_employees import TypeEmployee
 from app.models.interventions.interventions import Interventions
 from app.models.intervention_entities.intervention_entities import Intervention_entities
+from app.models.data_upload.data_upload import Data_upload
 # Importar tablas de relaciones
 from app.models.pipes.pipe_connections import pipe_connections
 from app.models.tanks.tanks_pipes import tank_pipes

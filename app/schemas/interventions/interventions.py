@@ -20,6 +20,9 @@ class InterventionsResponse(InterventionsBase):
     id_interventions: int
     created_at: datetime
     updated_at: datetime
+    id_tank: Optional[int] = None
+    id_pipes: Optional[int] = None
+    id_connection: Optional[int] = None
 
     class Config:
         from_attributes = True 
@@ -37,3 +40,6 @@ class InterventionsUpdate(BaseModel):
     status: Optional[InterventionStatus] = None
     photography: list[str] = []
     updated_at: Optional[datetime] = None
+    id_tank: Optional[int] = None
+    id_pipes: Optional[int] = None
+    id_connection: Optional[int] = None

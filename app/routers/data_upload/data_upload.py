@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
@@ -14,8 +14,8 @@ router = APIRouter(prefix="/data-upload", tags=["Data Upload"])
 
 @router.get('', response_model=List[Data_uploadResponse])
 async def list_data_uploads(
-    page: int = 1,
-    limit: int = 10,
+    page: int = Query(1, ge=1, description="Número de página"),
+    limit: int = Query(10, ge=1, le=10000, description="Límite de resultados por página"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
 ):
@@ -39,9 +39,25 @@ async def list_data_uploads(
             }
         })
     except Exception as e:
-        return error_response(f"Error al obtener los registros de data upload: {e}")
+        # Detectar errores de base de datos (tabla no existe)
+        error_str = str(e).lower()
+        if 'does not exist' in error_str or 'undefinedtable' in error_str or 'relation' in error_str:
+            # Si la tabla no existe, devolver respuesta vacía en lugar de error
+            return success_response({
+                "items": [],
+                "pagination": {
+                    "page": page,
+                    "limit": limit,
+                    "total_items": 0,
+                    "total_pages": 0,
+                    "next_page": None,
+                    "prev_page": None
+                }
+            }, "No hay registros disponibles")
+        # Para otros errores, devolver mensaje genérico sin detalles técnicos
+        return error_response("No se pudieron cargar los registros. Por favor, intenta nuevamente.")
 
-@router.get("/{data_upload_id}", response_model=Data_uploadResponse)
+@router.get("/{identifier}", response_model=Data_uploadResponse)
 async def get_data_upload(
     identifier: str,
     db: Session = Depends(get_db),
@@ -76,17 +92,19 @@ async def upload_excel_file(
         result = process_excel_data(db, contents, current_user)
         
         if result["success"]:
+            message = result.get("message") or f"Archivo '{file.filename}' procesado exitosamente"
             return success_response({
-                "message": f"Archivo '{file.filename}' procesado exitosamente",
-                "created_records": result["created_records"],
-                "total_processed": result["total_processed"],
-                "errors": result["errors"],
+                "message": message,
+                "created_records": result.get("created_records", 0),
+                "total_processed": result.get("total_processed", 0),
+                "errors": result.get("errors", []),
                 "filename": file.filename
             })
         else:
+            error_message = result.get("message") or "Error al procesar archivo"
             return error_response({
-                "message": "Error al procesar archivo",
-                "errors": result["errors"],
+                "message": error_message,
+                "errors": result.get("errors", []),
                 "filename": file.filename
             })
             

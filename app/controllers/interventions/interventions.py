@@ -38,6 +38,21 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None, st
     
     interventions = query.order_by(Interventions.id_interventions.desc()).offset(offset).limit(limit).all()
     
+    # Cargar las entidades asociadas para cada intervención
+    for intervention in interventions:
+        intervention_entity = db.query(Intervention_entities).filter(
+            Intervention_entities.d_interventions == intervention.id_interventions
+        ).first()
+        
+        if intervention_entity:
+            intervention.id_tank = intervention_entity.id_tank
+            intervention.id_pipes = intervention_entity.id_pipes
+            intervention.id_connection = intervention_entity.id_connection
+        else:
+            intervention.id_tank = None
+            intervention.id_pipes = None
+            intervention.id_connection = None
+    
     # No lanzar error si no hay intervenciones - simplemente devolver lista vacía
     # Esto es válido cuando no hay datos en la BD o cuando los filtros no coinciden
     
@@ -51,6 +66,21 @@ def get_by_id(db: Session, intervention_id: int):
             status_code=404,
             detail=existence_response_dict(False, "La intervención no existe")
         )
+    
+    # Cargar la entidad asociada
+    intervention_entity = db.query(Intervention_entities).filter(
+        Intervention_entities.d_interventions == intervention_id
+    ).first()
+    
+    # Agregar los IDs de entidad al objeto intervention como atributos dinámicos
+    if intervention_entity:
+        intervention.id_tank = intervention_entity.id_tank
+        intervention.id_pipes = intervention_entity.id_pipes
+        intervention.id_connection = intervention_entity.id_connection
+    else:
+        intervention.id_tank = None
+        intervention.id_pipes = None
+        intervention.id_connection = None
     
     return intervention
 
@@ -165,12 +195,90 @@ def update(db: Session, intervention_id: int, data: InterventionsUpdate, current
         )
     
     try:
-        for field, value in data.dict(exclude_unset=True).items():
+        # Extraer los IDs de entidad del data antes de actualizar
+        update_data = data.dict(exclude_unset=True)
+        entity_ids = {
+            'id_tank': update_data.pop('id_tank', None),
+            'id_pipes': update_data.pop('id_pipes', None),
+            'id_connection': update_data.pop('id_connection', None)
+        }
+        
+        for field, value in update_data.items():
             setattr(intervention, field, value)
         
         intervention.updated_at = datetime.now()
+        
+        # Actualizar o crear la entidad asociada si se proporcionan IDs
+        if any(entity_ids.values()):
+            # Validar que solo se proporcione un ID de entidad
+            provided_ids = [id for id in entity_ids.values() if id is not None]
+            if len(provided_ids) > 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Solo puede proporcionar un ID de entidad a la vez",
+                    headers={"X-Error": "Múltiples IDs de entidad"}
+                )
+            
+            # Verificar que la entidad existe
+            entity_type = ""
+            entity_id = None
+            
+            if entity_ids['id_tank']:
+                entity = db.query(Tank).filter(Tank.id_tank == entity_ids['id_tank']).first()
+                entity_type = "tanque"
+                entity_id = entity_ids['id_tank']
+                if not entity:
+                    raise HTTPException(status_code=404, detail="El tanque no existe")
+            elif entity_ids['id_pipes']:
+                entity = db.query(Pipes).filter(Pipes.id_pipes == entity_ids['id_pipes']).first()
+                entity_type = "tubería"
+                entity_id = entity_ids['id_pipes']
+                if not entity:
+                    raise HTTPException(status_code=404, detail="La tubería no existe")
+            elif entity_ids['id_connection']:
+                entity = db.query(Connection).filter(Connection.id_connection == entity_ids['id_connection']).first()
+                entity_type = "conexión"
+                entity_id = entity_ids['id_connection']
+                if not entity:
+                    raise HTTPException(status_code=404, detail="La conexión no existe")
+            
+            # Buscar la entidad de intervención existente
+            intervention_entity = db.query(Intervention_entities).filter(
+                Intervention_entities.d_interventions == intervention_id
+            ).first()
+            
+            if intervention_entity:
+                # Actualizar la entidad existente
+                intervention_entity.id_tank = entity_ids['id_tank']
+                intervention_entity.id_pipes = entity_ids['id_pipes']
+                intervention_entity.id_connection = entity_ids['id_connection']
+                intervention_entity.updated_at = datetime.now()
+            else:
+                # Crear nueva entidad si no existe
+                intervention_entity = Intervention_entities(
+                    d_interventions=intervention.id_interventions,
+                    id_tank=entity_ids['id_tank'],
+                    id_pipes=entity_ids['id_pipes'],
+                    id_connection=entity_ids['id_connection']
+                )
+                db.add(intervention_entity)
+        
         db.commit()
         db.refresh(intervention)
+        
+        # Cargar la entidad asociada para devolverla en la respuesta
+        intervention_entity = db.query(Intervention_entities).filter(
+            Intervention_entities.d_interventions == intervention_id
+        ).first()
+        
+        if intervention_entity:
+            intervention.id_tank = intervention_entity.id_tank
+            intervention.id_pipes = intervention_entity.id_pipes
+            intervention.id_connection = intervention_entity.id_connection
+        else:
+            intervention.id_tank = None
+            intervention.id_pipes = None
+            intervention.id_connection = None
 
         create_log(
             db,
@@ -183,6 +291,9 @@ def update(db: Session, intervention_id: int, data: InterventionsUpdate, current
         
         return intervention
         
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(

@@ -22,16 +22,24 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 from app.scripts.data_upload.data_upload import process_excel_from_content
 
 def get_all(db: Session, page: int, limit: int):
-    offset = (page - 1) * limit
-    
-    data_uploads = db.query(Data_upload).offset(offset).limit(limit).all()
-    query = db.query(Data_upload)
-    total = query.count()
     if page < 1 or limit < 1:
         raise HTTPException(status_code=400, detail="Página y límite deben ser mayores que 0")
-    return data_uploads, total
+    
+    try:
+        offset = (page - 1) * limit
+        data_uploads = db.query(Data_upload).offset(offset).limit(limit).all()
+        query = db.query(Data_upload)
+        total = query.count()
+        return data_uploads, total
+    except Exception as e:
+        # Si la tabla no existe, devolver lista vacía en lugar de error
+        error_str = str(e).lower()
+        if 'does not exist' in error_str or 'undefinedtable' in error_str or 'relation' in error_str:
+            return [], 0
+        # Para otros errores, relanzar
+        raise
 
-def get_by_identifier(db: Session, identifier: int):
+def get_by_identifier(db: Session, identifier: str):
     data_upload = db.query(Data_upload).filter(Data_upload.identifier == identifier).first()
     if not data_upload:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "El registro de data upload no existe"))
@@ -55,6 +63,8 @@ def create_bulk(db: Session, data_list: List[Data_uploadCreate], current_user: U
         new_data_upload = Data_upload(
             # Encabezado
             siaf=data.siaf,
+            municipality=data.municipality,
+            department=data.department,
             institutional_classification=data.institutional_classification,
             report=data.report,
             date=data.date,
@@ -94,7 +104,7 @@ def create_bulk(db: Session, data_list: List[Data_uploadCreate], current_user: U
 
     return created_records
 
-def update(db: Session, identifier: int, data: Data_uploadUpdate, current_user: UserLogin):
+def update(db: Session, identifier: str, data: Data_uploadUpdate, current_user: UserLogin):
     data_upload = db.query(Data_upload).filter(Data_upload.identifier == identifier).first()
     if not data_upload:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, f"El registro con identifier '{identifier}' no existe"))
@@ -118,7 +128,7 @@ def update(db: Session, identifier: int, data: Data_uploadUpdate, current_user: 
 
     return data_upload
 
-def toggle_state(db: Session, identifier: int, current_user: UserLogin):
+def toggle_state(db: Session, identifier: str, current_user: UserLogin):
     data_upload = db.query(Data_upload).filter(Data_upload.identifier == identifier).first()
     if not data_upload:
         raise HTTPException(status_code=404, detail=existence_response_dict(False, "El registro '{identifier}' no existe"))
@@ -139,7 +149,7 @@ def toggle_state(db: Session, identifier: int, current_user: UserLogin):
 
     return data_upload
 
-# FUncion para procesar el excel usando el script
+# Función para procesar el excel usando el script
 def process_excel_data(db: Session, file_content: bytes, current_user: UserLogin):
     try:
         print(" Ejecutando script de procesamiento Excel...")
@@ -152,26 +162,63 @@ def process_excel_data(db: Session, file_content: bytes, current_user: UserLogin
         
         print(f"Script retornó: {len(processed_data)} datos válidos, {len(errors)} errores")
         
-        # Insertar en BD
+        # Si hay errores críticos (formato incorrecto, columnas faltantes), devolver error
+        if errors and len(processed_data) == 0:
+            # Verificar si son errores críticos de formato
+            critical_errors = [e for e in errors if any(keyword in e.lower() for keyword in [
+                'columna', 'columnas', 'formato', 'vacío', 'válido', 'requerida'
+            ])]
+            if critical_errors:
+                return {
+                    "success": False,
+                    "errors": errors,
+                    "message": "El archivo Excel no tiene el formato correcto"
+                }
+        
+        # Insertar en BD solo si hay datos válidos
         if processed_data:
-            created_records = create_bulk(db, processed_data, current_user)
-            return {
-                "success": True,
-                "created_records": len(created_records),
-                "total_processed": len(processed_data),
-                "errors": errors
-            }
+            try:
+                created_records = create_bulk(db, processed_data, current_user)
+                return {
+                    "success": True,
+                    "created_records": len(created_records),
+                    "total_processed": len(processed_data),
+                    "errors": errors if errors else []
+                }
+            except Exception as db_error:
+                # Detectar si es error de tabla no existente
+                error_str = str(db_error).lower()
+                if 'does not exist' in error_str or 'undefinedtable' in error_str or 'relation' in error_str:
+                    db_error_msg = "La tabla de datos no existe en la base de datos. Por favor, ejecuta las migraciones: 'alembic upgrade head'"
+                else:
+                    db_error_msg = f"Error al guardar en la base de datos: {str(db_error)}"
+                errors.append(db_error_msg)
+                return {
+                    "success": False,
+                    "errors": errors,
+                    "message": "Error al guardar los datos procesados"
+                }
         else:
+            # No hay datos válidos para procesar
             return {
                 "success": False,
-                "errors": errors,
-                "message": "No se pudieron procesar registros"
+                "errors": errors if errors else ["No se encontraron datos válidos en el archivo"],
+                "message": "No se pudieron procesar registros. Verifica el formato del archivo."
             }
             
     except Exception as e:
-        error_msg = f"Error al ejecutar script: {str(e)}"
-        print(f" {error_msg}")
+        error_msg = str(e)
+        print(f"Error: {error_msg}")
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"Traceback: {traceback_str}")
+        
+        # Sanitizar mensajes de error técnicos
+        if 'current_user' in error_msg.lower() or 'is not defined' in error_msg.lower():
+            error_msg = "Error interno al procesar el archivo. Por favor, contacta al administrador."
+        
         return {
             "success": False,
-            "errors": [error_msg]
+            "errors": [error_msg],
+            "message": "Error al procesar el archivo Excel"
         }
