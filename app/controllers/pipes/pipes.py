@@ -69,6 +69,8 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
             "size": pipe.size,
             "installation_date": pipe.installation_date,
             "coordinates": coords,
+            "distance": pipe.distance,  
+            "sector_id": pipe.sector_id,
             "observations": pipe.observations,
             "created_at": pipe.created_at,
             "updated_at": pipe.updated_at,
@@ -149,7 +151,9 @@ def get_by_id(db: Session, pipe_id: int):
         "active": pipe.active,
         "size": pipe.size,
         "installation_date": pipe.installation_date,
-        "coordinates": coords,  # 🔹 devuelve toda la línea
+        "coordinates": coords,
+        "distance": pipe.distance,  
+        "sector_id": pipe.sector_id,
         "observations": pipe.observations,
         "created_at": pipe.created_at,
         "updated_at": pipe.updated_at,
@@ -161,10 +165,6 @@ def get_by_id(db: Session, pipe_id: int):
 
 
 def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
-    # existing = db.query(Pipes).filter(Pipes.material == pipe_data.material).first()
-    # if existing:
-    #     raise HTTPException(status_code=409, detail=existence_response_dict(True, "La tubería ya existe"))
-
     try:
         # Validar que coordinates tenga exactamente 2 puntos
         if len(pipe_data.coordinates) != 2:
@@ -194,16 +194,24 @@ def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
         # Construir LINESTRING con los 2 puntos
         coords_text = ", ".join([f"{lon} {lat}" for lon, lat in final_coordinates])
 
+        distance = db.scalar(
+            func.ST_Length(
+                func.ST_GeogFromText(f"LINESTRING({coords_text})")  # distancia real, en metros
+            )
+        )
+        
         new_pipe = Pipes(
-        material=pipe_data.material,
-        diameter=pipe_data.diameter,
-        active=pipe_data.active,
-        size=pipe_data.size,
-        installation_date=pipe_data.installation_date,
-        coordinates=WKTElement(f"LINESTRING({coords_text})", srid=4326),
-        observations=pipe_data.observations,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+            material=pipe_data.material,
+            diameter=pipe_data.diameter,
+            active=pipe_data.active,
+            size=pipe_data.size,
+            installation_date=pipe_data.installation_date,
+            coordinates=WKTElement(f"LINESTRING({coords_text})", srid=4326),
+            distance=distance,
+            sector_id=pipe_data.sector_id,
+            observations=pipe_data.observations,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )   
 
         # Asociar tanques
@@ -248,8 +256,10 @@ def create(db: Session, pipe_data: PipesBase, current_user: UserLogin):
             "observations": new_pipe.observations,
             "created_at": new_pipe.created_at,
             "updated_at": new_pipe.updated_at,
+            "sector_id": new_pipe.sector_id,
             "tanks": [{"id_tank": t.id_tank, "name": t.name} for t in new_pipe.tanks],
-            "coordinates": final_coordinates
+            "coordinates": final_coordinates,
+            "distance": distance
         }
 
     except HTTPException:
@@ -324,6 +334,13 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
             coords_text = ", ".join([f"{lon} {lat}" for lon, lat in final_coordinates])
             pipe.coordinates = WKTElement(f"LINESTRING({coords_text})", srid=4326)
             data.pop("coordinates", None)
+            
+            distance = db.scalar(
+                func.ST_Length(
+                    func.ST_GeogFromText(f"LINESTRING({coords_text})")  # distancia real, en metros
+                )
+            )
+
 
         # Actualizar tanques
         if "tank_ids" in data:
@@ -339,7 +356,7 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
             pipe.connections.clear()
             if "start_connection_id" in data and data["start_connection_id"]:
                 start_conn = db.query(Connection).filter(Connection.id_connection == data["start_connection_id"]).first()
-                if start_conn:
+                if start_conn: 
                     pipe.connections.append(start_conn)
             if "end_connection_id" in data and data["end_connection_id"]:
                 end_conn = db.query(Connection).filter(Connection.id_connection == data["end_connection_id"]).first()
@@ -381,6 +398,8 @@ def update(db: Session, pipe_id: int, pipe_data: PipesUpdate, current_user: User
             "size": pipe.size,
             "installation_date": pipe.installation_date,
             "coordinates": coords,
+            "distance": distance,
+            "sector_id": pipe.sector_id,
             "observations": pipe.observations,
             "created_at": pipe.created_at,
             "updated_at": pipe.updated_at,

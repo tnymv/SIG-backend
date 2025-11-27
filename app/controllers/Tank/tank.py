@@ -55,6 +55,7 @@ def get_all(db: Session, page: int, limit: int, search: Optional[str] = None):
             "longitude": lon,
             "connections": t.connections,
             "photography": list(t.photography or []),
+            "sector_id": t.sector_id,
             "active": t.active,
             "created_at": t.created_at,
             "updated_at": t.updated_at
@@ -88,6 +89,7 @@ def get_by_id(db: Session, tank_id: int):
         "longitude": longitude,
         "connections": tank.connections,
         "photography": list(tank.photography or []),
+        "sector_id": tank.sector_id,
         "active": tank.active,
         "created_at": tank.created_at,
         "updated_at": tank.updated_at
@@ -109,6 +111,7 @@ def create(db: Session, tank_data: TankBase,current_user: UserLogin):
             coordinates=f"SRID=4326;POINT({tank_data.longitude} {tank_data.latitude})",
             connections=tank_data.connections,
             photography=tank_data.photography if tank_data.photography else [],
+            sector_id=tank_data.sector_id,
             active=tank_data.active,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -130,6 +133,7 @@ def create(db: Session, tank_data: TankBase,current_user: UserLogin):
             "longitude": longitude,
             "connections": new_tank.connections,
             "photography": list(new_tank.photography) if new_tank.photography else [],
+            "sector_id": new_tank.sector_id,
             "active": new_tank.active,
             "created_at": new_tank.created_at,
             "updated_at": new_tank.updated_at
@@ -190,6 +194,7 @@ def update(db: Session, tank_id: int, tank_data: TankUpdate,current_user: UserLo
             "longitude": longitude,
             "connections": tank.connections,
             "photography": list(tank.photography) if tank.photography else [],
+            "sector_id": tank.sector_id,
             "active": tank.active,
             "created_at": tank.created_at,
             "updated_at": tank.updated_at

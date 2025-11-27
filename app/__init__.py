@@ -7,9 +7,9 @@ from fastapi import FastAPI, APIRouter
 #Aqui se importan los los schemmas
 from app.routers import type_employee_router, tank_router, auth_router, employee_router
 from app.routers import permsission_router,rol_router, user_router, report_router
-from app.routers import pipes_router, connection_router, files_router, interventions_router
+from app.routers import pipes_router, connection_router,  interventions_router
 from app.routers import data_upload_router
-from app.routers import map_router
+from app.routers import map_router, sector_router
 from app.routers.dashboard.dashboard import router as dashboard_router
 
 #Aqui se importan los modelos necesarios para la inicialización de datos
@@ -217,12 +217,12 @@ api_version.include_router(report_router)
 api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)
 api_version.include_router(connection_router)
-api_version.include_router(files_router)
 api_version.include_router(type_employee_router)
 api_version.include_router(interventions_router)
 api_version.include_router(data_upload_router)
 api_version.include_router(map_router)
 api_version.include_router(dashboard_router)
+api_version.include_router(sector_router)
 #-----
 
 

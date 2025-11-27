@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Numeric, ForeignKey
 from app.models.pipes.pipe_connections import pipe_connections
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -17,10 +17,12 @@ class Connection(Base):
     installed_date = Column(DateTime)              
     installed_by = Column(String(100))
     description = Column(Text)
+    sector_id = Column(Integer, ForeignKey("sectors.id_sector"), nullable=True)
     active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     pipes = relationship("Pipes", secondary=pipe_connections, back_populates="connections")
     connection_interventions = relationship("Intervention_entities", back_populates="connection")
+    sector = relationship("Sector", back_populates="connections")
 

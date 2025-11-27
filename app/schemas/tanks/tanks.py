@@ -7,6 +7,7 @@ class TankBase(BaseModel):
     longitude: float
     connections: str | None = None
     photography: list[str] = []
+    sector_id: int
     active: bool
     
 class TankCreate(TankBase):
@@ -18,6 +19,7 @@ class TankUpdate(BaseModel):
     longitude: Optional[float] = None
     connections: Optional[str] = None
     photography: Optional[list[str]] = None
+    sector_id: Optional[int] = None
     active: Optional[bool] = None
 
 class TankResponse(TankBase):

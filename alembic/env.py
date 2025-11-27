@@ -28,7 +28,6 @@ from app.models.rol_permissions.rol_permissions import Rol_permissions
 from app.models.permissions.permissions import Permissions
 from app.models.connection.connections import Connection
 from app.models.pipes.pipes import Pipes
-from app.models.files.files import Files
 from app.models.type_employee.type_employees import TypeEmployee
 from app.models.interventions.interventions import Interventions
 from app.models.intervention_entities.intervention_entities import Intervention_entities
@@ -36,6 +35,7 @@ from app.models.data_upload.data_upload import Data_upload
 # Importar tablas de relaciones
 from app.models.pipes.pipe_connections import pipe_connections
 from app.models.tanks.tanks_pipes import tank_pipes
+from app.models.sector.sector import Sector
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

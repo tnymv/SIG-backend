@@ -13,6 +13,7 @@ class PipesBase(BaseModel):
     observations: Optional[str] = None
     coordinates: List[Tuple[float, float]]
     tank_ids: Optional[List[int]] = []
+    sector_id: int
     start_connection_id: Optional[int] = None
     end_connection_id: Optional[int] = None
 
@@ -36,6 +37,8 @@ class PipesResponse(BaseModel):
     installation_date:datetime
     coordinates: List[Tuple[float, float]]
     observations: Optional[str] = None
+    distance: Optional[Decimal] = None  
+    sector_id: int = None
     created_at: datetime
     updated_at: datetime
     tanks: List[TankSimple] = []
@@ -57,6 +60,7 @@ class PipesUpdate(BaseModel):
     coordinates: Optional[List[Tuple[float, float]]] = None
     observations: Optional[str] = None
     tank_ids: Optional[List[int]] = None
+    sector_id: Optional[int] = None
     start_connection_id: Optional[int] = None
     end_connection_id: Optional[int] = None
 
