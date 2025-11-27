@@ -6,6 +6,7 @@ from typing import List, Optional
 class RolBase(BaseModel):
     name: str
     description: Optional[str] = None
+    url: Optional[str] = None 
     active: bool
 
 # Para creación de usuario (entrada)
@@ -16,6 +17,7 @@ class RolCreate(RolBase):
 class RolUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    url: Optional[str] = None
     active: Optional[bool] = None
     permission_ids: Optional[List[int]] = None
 

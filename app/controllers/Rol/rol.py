@@ -62,6 +62,7 @@ def get_by_id(db: Session, rol_id: int):
         "id_rol": rol.id_rol,
         "name": rol.name,
         "description": rol.description,
+        "url": rol.url,
         "active": rol.active,
         "created_at": rol.created_at.isoformat() if rol.created_at else None,
         "updated_at": rol.updated_at.isoformat() if rol.updated_at else None,
@@ -91,6 +92,7 @@ def create(db: Session, data: RolCreate,current_user: UserLogin):
     new_rol = Rol(
         name=data.name,
         description=data.description,
+        url=data.url,
         active=data.active,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
