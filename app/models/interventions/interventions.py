@@ -16,3 +16,4 @@ class Interventions(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     entities = relationship("Intervention_entities", back_populates="intervention")
+    assignments = relationship("Assignment", back_populates="intervention") #Nueva relación para asignaciones

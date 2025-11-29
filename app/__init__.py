@@ -9,7 +9,7 @@ from app.routers import type_employee_router, tank_router, auth_router, employee
 from app.routers import permsission_router,rol_router, user_router, report_router
 from app.routers import pipes_router, connection_router,  interventions_router
 from app.routers import data_upload_router
-from app.routers import map_router, sector_router
+from app.routers import map_router, sector_router, assignments_router
 from app.routers.dashboard.dashboard import router as dashboard_router
 
 #Aqui se importan los modelos necesarios para la inicialización de datos
@@ -223,6 +223,7 @@ api_version.include_router(data_upload_router)
 api_version.include_router(map_router)
 api_version.include_router(dashboard_router)
 api_version.include_router(sector_router)
+api_version.include_router(assignments_router)
 #-----
 
 

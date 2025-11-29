@@ -17,3 +17,4 @@ class Employee(Base):
     # Relación con la tabla Username
     users = relationship("Username", back_populates="employee")
     type_employee = relationship("TypeEmployee", back_populates="employees")
+    assignments = relationship("Assignment", back_populates="employee") # Nueva relación para asignaciones

@@ -12,3 +12,4 @@ from .interventions.interventions import Interventions
 # from .data_upload.data_upload import Data_upload
 from .intervention_entities.intervention_entities import Intervention_entities
 from .sector.sector import Sector
+from .assignments.assignments import Assignment
