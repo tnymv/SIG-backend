@@ -6,6 +6,8 @@ from app.models.intervention_entities.intervention_entities import Intervention_
 from app.models.assignments.assignments import Assignment
 from app.models.interventions.interventions import Interventions
 from app.models.tanks.tanks import Tank
+from app.models.employee.employee import Employee
+from app.models.type_employee.type_employees import TypeEmployee
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime
@@ -557,3 +559,441 @@ def report_tanks(db: Session):
             status_code=500,
             detail=f"Error al generar el reporte de tanques: {str(e)}"
         )
+
+#Reporte 11: Reporte de estado por tanque
+def report_tank_status(db: Session):
+    try:
+        tanks = db.query(Tank).all()
+        result = []
+
+        for tank in tanks:
+            # Total de intervenciones asociadas
+            total_interventions = (
+                db.query(Intervention_entities)
+                .filter(Intervention_entities.id_tank == tank.id_tank)
+                .count()
+            )
+
+            # Última intervención
+            last_intervention = (
+                db.query(Intervention_entities)
+                .filter(Intervention_entities.id_tank == tank.id_tank)
+                .join(Interventions, Interventions.id_interventions == Intervention_entities.d_interventions)
+                .order_by(Interventions.created_at.desc())
+                .first()
+            )
+
+            result.append({
+                "id_tank": tank.id_tank,
+                "name": tank.name,
+                "state": "ACTIVO" if tank.active else "INACTIVO",
+                "coordinates": db.scalar(func.ST_AsText(tank.coordinates)) if tank.coordinates else None,
+                "photos": tank.photography,
+                "created_at": tank.created_at,
+                "total_interventions": total_interventions,
+                "last_intervention": last_intervention.intervention.description if last_intervention else None
+            })
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(500, f"Error al generar reporte de estado de tanques: {str(e)}")
+
+#Reporte 12: Reporte de desvios
+def report_deviations(db: Session):
+    try:
+        connections = db.query(Connection).all()
+        result = []
+
+        for conn in connections:
+            total_interventions = (
+                db.query(Intervention_entities)
+                .filter(Intervention_entities.id_connection == conn.id_connection)
+                .count()
+            )
+
+            result.append({
+                "id_connection": conn.id_connection,
+                "sector": conn.sector.name if conn.sector else None,
+                "material": conn.material,
+                "type": conn.connection_type,
+                "installed_date": conn.installed_date,
+                "coordinates": db.scalar(func.ST_AsText(conn.coordenates)) if conn.coordenates else None,
+                "active": conn.active,
+                "total_interventions": total_interventions
+            })
+
+        return result
+
+    except Exception as e:
+        raise HTTPException(500, f"Error al generar reporte de desvíos: {str(e)}")
+
+#Reporte 14: Reporte de trabajos asignados
+# Reporte 14: Trabajos asignados (con rango de fechas)
+def report_assigned_jobs(db: Session, date_start: str, date_finish: str):
+    try:
+        start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+        finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+        assignments = (
+            db.query(Assignment)
+            .filter(
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .order_by(Assignment.assigned_at.desc())
+            .all()
+        )
+
+        result = []
+        for a in assignments:
+            result.append({
+                "id_assignment": a.id_assignment,
+                "assigned_at": a.assigned_at,
+                "status": a.status,
+                "notes": a.notes,
+
+                "employee": {
+                    "id": a.employee.id_employee,
+                    "name": f"{a.employee.first_name} {a.employee.last_name}"
+                },
+
+                "intervention": {
+                    "id": a.intervention.id_interventions,
+                    "description": a.intervention.description,
+                    "status": a.intervention.status
+                }
+            })
+
+        return {
+            "total_assignments": len(result),
+            "assignments": result
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en el reporte de trabajos asignados: {str(e)}"
+        )
+
+
+#Reporte 15: Trabajo asignado por estado
+def report_assigned_jobs_by_status(db: Session, date_start: str, date_finish: str):
+    try:
+        start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+        finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+        assignments = (
+            db.query(Assignment)
+            .filter(
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .order_by(Assignment.status, Assignment.assigned_at.desc())
+            .all()
+        )
+
+        # contador por estado
+        status_count = {}
+        for a in assignments:
+            status_count[a.status] = status_count.get(a.status, 0) + 1
+
+        # detalle
+        results = []
+        for a in assignments:
+            results.append({
+                "id_assignment": a.id_assignment,
+                "status": a.status,
+                "assigned_at": a.assigned_at,
+                "notes": a.notes,
+
+                "employee": {
+                    "id": a.employee.id_employee,
+                    "name": f"{a.employee.first_name} {a.employee.last_name}"
+                },
+
+                "intervention": {
+                    "id": a.intervention.id_interventions,
+                    "description": a.intervention.description
+                }
+            })
+
+        return {
+            "summary": status_count,
+            "total_assignments": len(results),
+            "assignments": results
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en el reporte de trabajos por estado: {str(e)}"
+        )
+
+#Reporte 16: Reporte de fontanero
+def report_plumber(db: Session, employee_id: int, date_start: str, date_finish: str):
+    try:
+        start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+        finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+        employee = db.query(Employee).filter(Employee.id_employee == employee_id).first()
+        if not employee:
+            raise HTTPException(404, "Empleado no encontrado")
+
+        if employee.type_employee.name.lower() != "fontanero":
+            raise HTTPException(400, "El empleado no es fontanero")
+
+        assignments = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == employee_id,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .all()
+        )
+
+        return {
+            "id_employee": employee.id_employee,
+            "name": f"{employee.first_name} {employee.last_name}",
+            "total_trabajos": len(assignments),
+            "asignado": sum(a.status == "ASIGNADO" for a in assignments),
+            "en_proceso": sum(a.status == "EN PROCESO" for a in assignments),
+            "completado": sum(a.status == "COMPLETADO" for a in assignments),
+        }
+
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte fontanero: {e}")
+
+
+
+#Reporte 17: Reporte de fontaneros más activos
+def report_top_plumbers(db: Session, date_start: str, date_finish: str):
+
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    plumbers = (
+        db.query(Employee)
+        .join(TypeEmployee, TypeEmployee.id_type_employee == Employee.id_type_employee)
+        .filter(TypeEmployee.name == "Fontanero")
+        .all()
+    )
+
+    results = []
+
+    for emp in plumbers:
+        count = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == emp.id_employee,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .count()
+        )
+        results.append({
+            "employee": f"{emp.first_name} {emp.last_name}",
+            "id_employee": emp.id_employee,
+            "total_trabajos": count
+        })
+
+    return sorted(results, key=lambda x: x["total_trabajos"], reverse=True)
+
+
+#Reporte 18: Reporte de operadores
+def report_operator(db: Session, employee_id: int, date_start: str, date_finish: str):
+
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    employee = db.query(Employee).filter(Employee.id_employee == employee_id).first()
+    if not employee:
+        raise HTTPException(404, "Empleado no encontrado")
+
+    if employee.type_employee.name.lower() != "operador":
+        raise HTTPException(400, "El empleado no es operador")
+
+    assignments = (
+        db.query(Assignment)
+        .filter(
+            Assignment.employee_id == employee_id,
+            Assignment.assigned_at >= start_date,
+            Assignment.assigned_at <= finish_date
+        )
+        .all()
+    )
+
+    return {
+        "id_employee": employee.id_employee,
+        "name": f"{employee.first_name} {employee.last_name}",
+        "total_trabajos": len(assignments),
+        "asignado": sum(a.status == "ASIGNADO" for a in assignments),
+        "en_proceso": sum(a.status == "EN PROCESO" for a in assignments),
+        "completado": sum(a.status == "COMPLETADO" for a in assignments),
+    }
+
+
+#Reporte 19: Reporte de operadores más activos
+def report_top_operators(db: Session, date_start: str, date_finish: str):
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    operators = (
+        db.query(Employee)
+        .join(TypeEmployee, TypeEmployee.id_type_employee == Employee.id_type_employee)
+        .filter(TypeEmployee.name == "Operador")
+        .all()
+    )
+
+    results = []
+
+    for emp in operators:
+        count = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == emp.id_employee,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .count()
+        )
+        results.append({
+            "employee": f"{emp.first_name} {emp.last_name}",
+            "id_employee": emp.id_employee,
+            "total_trabajos": count
+        })
+
+    return sorted(results, key=lambda x: x["total_trabajos"], reverse=True)
+
+
+#Reporte 20: Reporte de Lectores
+def report_readers(db: Session, date_start: str, date_finish: str):
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    readers = (
+        db.query(Employee)
+        .join(TypeEmployee, TypeEmployee.id_type_employee == Employee.id_type_employee)
+        .filter(TypeEmployee.name == "Lector")
+        .all()
+    )
+
+    result = []
+
+    for emp in readers:
+        actividad = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == emp.id_employee,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .count()
+        )
+        result.append({
+            "id_employee": emp.id_employee,
+            "nombre": f"{emp.first_name} {emp.last_name}",
+            "actividad": actividad
+        })
+
+    return result
+
+#Repote 21: Reporte de Lectores más activos
+def report_top_readers(db: Session, date_start: str, date_finish: str):
+
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    readers = (
+        db.query(Employee)
+        .join(TypeEmployee)
+        .filter(TypeEmployee.name == "Lector")
+        .all()
+    )
+
+    results = []
+
+    for emp in readers:
+        count = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == emp.id_employee,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .count()
+        )
+
+        results.append({
+            "employee": f"{emp.first_name} {emp.last_name}",
+            "id_employee": emp.id_employee,
+            "total_trabajos": count
+        })
+
+    return sorted(results, key=lambda x: x["total_trabajos"], reverse=True)
+
+
+#Reporte 22: Reporte de encargados de limpieza
+def report_encargados_limpieza(db: Session):
+    try:
+        tipo = (
+            db.query(TypeEmployee)
+            .filter(TypeEmployee.name == "Encargado de limpieza")
+            .first()
+        )
+
+        if not tipo:
+            raise HTTPException(404, "No existe el tipo 'Encargado de limpieza'")
+
+        empleados = (
+            db.query(Employee)
+            .filter(Employee.id_type_employee == tipo.id_type_employee)
+            .all()
+        )
+
+        return [
+            {
+                "id_employee": emp.id_employee,
+                "nombre": f"{emp.first_name} {emp.last_name}",
+                "telefono": emp.phone_number,
+                "activo": emp.active
+            }
+            for emp in empleados
+        ]
+
+    except Exception as e:
+        raise HTTPException(500, f"Error en reporte encargados de limpieza: {e}")
+
+#Reporte 23: Reporte de encargados de limpieza más activos
+def report_top_cleaners(db: Session, date_start: str, date_finish: str):
+    start_date = datetime.fromisoformat(date_start.replace("Z", "+00:00"))
+    finish_date = datetime.fromisoformat(date_finish.replace("Z", "+00:00"))
+
+    cleaners = (
+        db.query(Employee)
+        .join(TypeEmployee)
+        .filter(TypeEmployee.name == "Encargado de limpieza")
+        .all()
+    )
+
+    results = []
+
+    for emp in cleaners:
+        count = (
+            db.query(Assignment)
+            .filter(
+                Assignment.employee_id == emp.id_employee,
+                Assignment.assigned_at >= start_date,
+                Assignment.assigned_at <= finish_date
+            )
+            .count()
+        )
+
+        results.append({
+            "id_employee": emp.id_employee,
+            "nombre": f"{emp.first_name} {emp.last_name}",
+            "actividad": count
+        })
+
+    return sorted(results, key=lambda x: x["actividad"], reverse=True)

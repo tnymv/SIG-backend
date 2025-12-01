@@ -19,7 +19,19 @@ from app.controllers.Report.report import (
     report_interventions,
     report_interventions_by_sector,
     report_intervention_frequency,
-    report_tanks
+    report_tanks,
+    report_tank_status,
+    report_assigned_jobs,
+    report_assigned_jobs_by_status,
+    report_deviations,
+    report_encargados_limpieza,
+    report_readers,
+    report_top_cleaners,
+    report_top_operators,
+    report_top_plumbers,
+    report_top_readers,
+    report_operator,
+    report_plumber
 )
 from fastapi import HTTPException
 router = APIRouter(prefix='/report', tags=['Reports'])
@@ -244,3 +256,203 @@ async def report_tanks_(
         }
     except Exception as e:
         raise HTTPException(500, f"Error al generar el reporte: {e}")
+
+@router.get("/tanks/status")
+async def report_tanks_status_(
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_tank_status(db)
+        return {
+            "success": True,
+            "message": "Reporte de estado de tanques generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@router.get("/deviations")
+async def report_deviations_(
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_deviations(db)
+        return {
+            "success": True,
+            "message": "Reporte de desvíos generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@router.get("/assignments")
+async def report_assigned_jobs_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_assigned_jobs(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Reporte de trabajos asignados generado correctamente",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error al generar el reporte: {e}")
+
+@router.get("/assignments/status")
+async def report_assigned_jobs_by_status_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_assigned_jobs_by_status(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Reporte de trabajos por estado generado correctamente",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error al generar el reporte: {e}")
+
+@router.get("/employees/plumber/{employee_id}")
+async def report_plumber_(
+    employee_id: int,
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_plumber(db, employee_id, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Reporte de fontanero generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte fontanero: {e}")
+
+@router.get("/employees/plumbers/top")
+async def report_top_plumbers_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_top_plumbers(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Fontaneros más activos generados",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte fontaneros activos: {e}")
+
+@router.get("/employees/operator/{employee_id}")
+async def report_operator_(
+    employee_id: int,
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_operator(db, employee_id, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Reporte de operador generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte operador: {e}")
+
+@router.get("/employees/operators/top")
+async def report_top_operators_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_top_operators(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Operadores más activos generados",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte operadores activos: {e}")
+
+@router.get("/employees/readers")
+async def report_readers_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_readers(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Reporte de lectores generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte lectores: {e}")
+
+@router.get("/employees/readers/top")
+async def report_top_readers_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_top_readers(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Lectores más activos generados",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte lectores activos: {e}")
+
+@router.get("/employees/cleaners")
+async def report_cleaners_(
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_encargados_limpieza(db)
+        return {
+            "success": True,
+            "message": "Reporte encargados de limpieza generado",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte limpieza: {e}")
+
+@router.get("/employees/cleaners/top")
+async def report_top_cleaners_(
+    date_start: str,
+    date_finish: str,
+    db: Session = Depends(get_db),
+    current_user: UserLogin = Depends(get_current_active_user)
+):
+    try:
+        report = report_top_cleaners(db, date_start, date_finish)
+        return {
+            "success": True,
+            "message": "Encargados de limpieza más activos generados",
+            "data": report
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error reporte limpieza activos: {e}") 
