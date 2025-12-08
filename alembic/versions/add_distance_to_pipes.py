@@ -14,7 +14,7 @@ from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision: str = 'add_distance_pipes'
-down_revision: Union[str, None] = '676567411805'
+down_revision: Union[str, None] = '59292210906c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
