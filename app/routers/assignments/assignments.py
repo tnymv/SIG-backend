@@ -27,7 +27,7 @@ router = APIRouter(prefix="/assignments", tags=["Assignments"])
 @router.get("", response_model=List[AssignmentResponse])
 async def list_assignments(
     page: int = Query(1, ge=1, description="Número de página"),
-    limit: int = Query(5, ge=1, le=10, description="Límite de resultados por página"),
+    limit: int = Query(5, ge=1, le=100, description="Límite de resultados por página"),
     search: Optional[str] = Query(None, description="Buscar por estado o notas"),
     db: Session = Depends(get_db),
     current_user: UserLogin = Depends(get_current_active_user)
