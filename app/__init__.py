@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 #Aqui se importan los los schemmas
-from app.routers import type_employee_router, tank_router, auth_router, employee_router
+from app.routers import type_employee_router, tank_router, bombs_router, auth_router, employee_router
 from app.routers import permsission_router,rol_router, user_router, report_router
 from app.routers import pipes_router, connection_router,  interventions_router
 from app.routers import data_upload_router
@@ -213,6 +213,7 @@ api_version.include_router(employee_router)
 api_version.include_router(user_router)
 api_version.include_router(auth_router)
 api_version.include_router(tank_router)
+api_version.include_router(bombs_router)
 api_version.include_router(report_router)
 api_version.include_router(permsission_router)
 api_version.include_router(pipes_router)

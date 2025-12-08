@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Numeric, ForeignKey
 from app.models.pipes.pipe_connections import pipe_connections
+from app.models.bombs.bombs_pipes import bombs_pipes
 from app.models.tanks.tanks_pipes import tank_pipes
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -26,3 +27,4 @@ class Pipes(Base):
     tanks = relationship("Tank", secondary=tank_pipes, back_populates="pipes")
     pipe_interventions = relationship("Intervention_entities", back_populates="pipe")
     sector = relationship("Sector", back_populates="pipes")
+    bombs = relationship("Bombs", secondary=bombs_pipes, back_populates="pipes")

@@ -8,6 +8,7 @@ class Intervention_entities(Base):
     id_intervention_entities = Column(Integer, primary_key=True, index = True)
     d_interventions = Column(Integer, ForeignKey("interventions.id_interventions", ondelete="CASCADE"))
     id_tank = Column(Integer, ForeignKey("tanks.id_tank", ondelete="CASCADE"))
+    id_bombs = Column(Integer, ForeignKey("bombs.id_bombs", ondelete="CASCADE"), nullable=True)
     id_pipes = Column(Integer, ForeignKey("pipes.id_pipes", ondelete="CASCADE"))
     id_connection = Column(Integer, ForeignKey("connections.id_connection", ondelete="CASCADE"))
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -17,3 +18,4 @@ class Intervention_entities(Base):
     tank = relationship("Tank", back_populates="tank_interventions")
     pipe = relationship("Pipes", back_populates="pipe_interventions")
     connection = relationship("Connection", back_populates="connection_interventions")
+    bombs = relationship("Bombs", back_populates="bombs_interventions") 
