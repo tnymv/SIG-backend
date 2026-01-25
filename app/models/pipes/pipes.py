@@ -28,3 +28,9 @@ class Pipes(Base):
     pipe_interventions = relationship("Intervention_entities", back_populates="pipe")
     sector = relationship("Sector", back_populates="pipes")
     bombs = relationship("Bombs", secondary=bombs_pipes, back_populates="pipes")
+    gate_valves = relationship(
+        "Gate_Valve", 
+        secondary="intervention_entities", 
+        back_populates="pipes",
+        viewonly=True
+    )

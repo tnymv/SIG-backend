@@ -17,3 +17,4 @@ class Sector(Base):
     pipes = relationship("Pipes", back_populates="sector")
     connections = relationship("Connection", back_populates="sector")
     bombs = relationship("Bombs", back_populates="sector")
+    gate_valves = relationship("Gate_Valve", back_populates="sector")

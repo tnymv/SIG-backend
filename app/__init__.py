@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter
 
 #Aqui se importan los los schemmas
-from app.routers import type_employee_router, tank_router, bombs_router, auth_router, employee_router
+from app.routers import type_employee_router, tank_router, bombs_router, auth_router, employee_router,gate_router
 from app.routers import permsission_router,rol_router, user_router, report_router
 from app.routers import pipes_router, connection_router,  interventions_router
 from app.routers import data_upload_router
@@ -19,6 +19,7 @@ from app.models.employee.employee import Employee
 from app.utils.auth import get_password_hash
 from app.models.user.user import Username
 from app.models.rol.rol import Rol
+from app.models.gate_valve.gate_valve import Gate_Valve
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -225,8 +226,8 @@ api_version.include_router(map_router)
 api_version.include_router(dashboard_router)
 api_version.include_router(sector_router)
 api_version.include_router(assignments_router)
+api_version.include_router(gate_router)
 #-----
-
 
 app.include_router(api_version)
     

@@ -14,3 +14,4 @@ from app.routers.interventions.intervention import router as interventions_route
 from app.routers.map.map import router as map_router
 from app.routers.sector.sector import router as sector_router
 from app.routers.assignments.assignments import router as assignments_router
+from app.routers.gate_valve.gate_valve import router as gate_router 
